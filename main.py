@@ -321,6 +321,9 @@ def main():
             create_account()
         elif choice == '2':
             login()
+        else:
+            print("[blue]Good luck[/blue] ")
+            exit()
 
 
 if __name__ == "__main__":
