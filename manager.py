@@ -29,3 +29,24 @@ class AdminManager:
             print('Operation canceled.')
 
 
+def main():
+    parser = ArgumentParser(description='Manage system admins')
+    parser.add_argument('command', choices=['create-admin', 'purge-data'], help='Specify the command')
+    parser.add_argument('--username', help='Admin username')
+    parser.add_argument('--password', help='Admin password')
+
+    args = parser.parse_args()
+
+    admin_manager = AdminManager()
+
+    if args.command == 'create-admin':
+        admin_info = admin_manager.create_admin(args.username, args.password)
+        if admin_info:  
+            print(f'Admin info saved in Account/{admin_manager.admin_file}')
+
+    elif args.command == 'purge-data':
+        admin_manager.purge_data()
+
+
+if __name__ == '__main__':
+    main()
