@@ -123,3 +123,55 @@ class ProjectManager:
                 })
             json.dump(project_data, f, indent=4)
 
+
+def main():
+    project_manager = ProjectManager()
+    project_manager.load_projects()
+
+    while True:
+        console = Console(width=50)
+        print("\n1. Create Project")
+        print("2. Delete Project")
+        print("3. Add Member to Project")
+        print("4. Remove Member from Project")
+        print("5. View User Projects")
+        print("6. Exit")
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
+            project_id = input("Enter project ID: ")
+            title = input("Enter project title: ")
+            username = input("Enter your username: ")
+            owner = User(username)
+            project_manager.create_project(project_id, title, owner)
+
+        elif choice == "2":
+            project_id = input("Enter project ID to delete: ")
+            project_manager.delete_project(project_id)
+
+        elif choice == "3":
+            project_id = input("Enter project ID: ")
+            member = input("Enter member username to add: ")
+            project_manager.add_member_to_project(project_id, User(member))
+
+
+
+        elif choice == "4":
+            project_id = input("Enter project ID: ")
+            member = input("Enter member username to remove: ")
+            username = input("Enter your username: ")
+            project_manager.remove_member_from_project(project_id, User(member), username)
+
+        elif choice == "5":
+            username = input("Enter your username: ")
+            user_projects = project_manager.get_user_projects(username)
+            print("Your projects:")
+            for project_id, title, role in user_projects:
+                print(f"Project ID: {project_id}, Title: {title}, Role: {role}")
+
+        elif choice == "6":
+            project_manager.save_projects()
+            break
+
+if __name__ == "__main__":
+    main()
