@@ -4,7 +4,122 @@ import json
 from rich import print
 from typing import List
 import os
-import datetime
+from datetime import datetime, timedelta
+import uuid
+from enum import Enum
+
+
+class User:
+    def __init__(self, username):
+        self.username = username
+
+class Project:
+    def __init__(self, project_id, title, owner):
+        self.project_id = project_id
+        self.title = title
+        self.owner = owner
+        self.members = []
+        self.tasks = []
+
+    def add_member(self, member):
+        if member != self.owner and member not in self.members:
+            self.members.append(member)
+
+
+class ProjectManager:
+    def __init__(self):
+        self.projects = []
+
+    def create_project(self, project_id, title, owner):
+        for project in self.projects:
+            if project.project_id == project_id:
+                print("Error: Project ID already exists.")
+                return
+        new_project = Project(project_id, title, owner)
+        new_project.add_member(owner)
+        self.projects.append(new_project)
+        self.save_projects()
+
+    def delete_project(self, project_id, username):
+        for project in self.projects:
+            if project.project_id == project_id:
+                if project.owner.username == username:
+                    self.projects.remove(project)
+                    self.save_projects()
+                    print("Project deleted successfully.")
+                    input("Press Enter to continue...")
+                    clear_screen()
+                    return
+                else:
+                    print("You are not the owner of this project. You cannot delete it.")
+                    return
+        print("Error: Project ID not found.")
+
+    def add_member_to_project(self, project_id, member):
+        for project in self.projects:
+            if project.project_id == project_id:
+                project.add_member(member)
+                self.save_projects()
+                return
+        print("Error: Project ID not found.")
+
+    def remove_member_from_project(self, project_id, member_to_remove, requesting_user):
+        for project in self.projects:
+            if project.project_id == project_id:
+                if member_to_remove.username == project.owner.username:
+                    print("Error: Owner cannot be removed from the project.")
+                    return
+                if requesting_user == project.owner.username:
+                    if member_to_remove.username in [member.username for member in project.members]:
+                        project.members = [member for member in project.members if
+                        member.username != member_to_remove.username]
+                        self.save_projects()
+                        print(f"{member_to_remove.username} has been removed from the project.")
+                        input("Press Enter to continue...")
+                        clear_screen()
+                        return
+                    else:
+                        print("Error: The specified user is not a member of this project.")
+                        return
+                else:
+                    print("Error: Only project owner can remove members.")
+                    return
+        print("Error: Project ID not found.")
+
+    def get_user_projects(self, username):
+        user_projects = []
+        for project in self.projects:
+            if username == project.owner.username:
+                user_projects.append((project.project_id, project.title, "Owner"))
+            elif username in [member.username for member in project.members]:
+                user_projects.append((project.project_id, project.title, "Member"))
+        return user_projects
+
+    def save_projects(self):
+        projects_json = []
+        for project in self.projects:
+            project_json = {
+                "project_id": project.project_id,
+                "title": project.title,
+                "owner": project.owner.username,
+                "members": [member.username for member in project.members],
+            }
+            projects_json.append(project_json)
+        with open(os.path.join("Account", "projects.json"), "w") as f: 
+            json.dump(projects_json, f, default=str)
+
+    def load_projects(self):
+        if os.path.exists(os.path.join("Account", "projects.json")):
+            with open(os.path.join("Account", "projects.json"), "r") as f:
+                project_data = json.load(f)
+                for data in project_data:
+                    owner = User(data["owner"])
+                    members = [User(member) for member in data["members"]]
+                    project = Project(data["project_id"], data["title"], owner)
+                    for member in members:
+                        project.add_member(member)
+                    self.projects.append(project)
+
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -232,6 +347,52 @@ def print_account(email, username, password, console):
         console.print(password, overflow=overflow_p, style="blink bold cyan", justify='center')
         print("\n")
 
+def account():
+    project_manager = ProjectManager()
+    project_manager.load_projects()
+
+    while True:
+        print("1. Create Project")
+        print("2. Delete Project")
+        print("3. Add Member to Project")
+        print("4. Remove Member from Project")
+        print("5. Exit")
+
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
+            project_id = input("Enter Project ID: ")
+            title = input("Enter Project Title: ")
+            owner_username = input("Enter Owner Username: ")
+            owner = User(owner_username)
+            project_manager.create_project(project_id, title, owner)
+
+        elif choice == "2":
+            project_id = input("Enter Project ID: ")
+            username = input("Enter Your Username: ")
+            project_manager.delete_project(project_id, username)
+            
+
+        elif choice == "3":
+            project_id = input("Enter Project ID: ")
+            member_username = input("Enter Member Username: ")
+            member = User(member_username)
+            project_manager.add_member_to_project(project_id, member)
+
+        elif choice == "4":
+            project_id = input("Enter Project ID: ")
+            member_to_remove_username = input("Enter Member Username to Remove: ")
+            member_to_remove = User(member_to_remove_username)
+            requesting_user = input("Enter Your Username: ")
+            project_manager.remove_member_from_project(project_id, member_to_remove, requesting_user)
+
+        
+        elif choice == "5":
+            print("Exiting...")
+            break
+        else:
+            print("Invalid Choice!")
+
 
 def login():
     console = Console(width=50)
@@ -260,6 +421,7 @@ def login():
         print_account(users[username]['email'], username, users[username]['password'], console)
         input("Press Enter to continue...")
         clear_screen()
+        '''
         remember_choice = input("[cyan]Do you want to remember your username and password for a week? (y/n)[/cyan]")
         if remember_choice.lower() == 'y':
             expiry_date = datetime.datetime.now() + datetime.timedelta(days=7)
@@ -267,6 +429,8 @@ def login():
             save_users(users)
         input("Press Enter to continue...")
         clear_screen()
+        '''
+        account()
     else:
         print("[bold red]Invalid username or password![/bold red]")
         print(f"[cyan]Do you have an account?(y/n)[/cyan]")
@@ -282,6 +446,7 @@ def login():
             print("[bold red]Invalid input! [/bold red]")
             input("Press Enter to continue...")
             clear_screen()
+
 
 
 def main():
