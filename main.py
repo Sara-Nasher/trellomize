@@ -7,6 +7,8 @@ from typing import List
 import os
 import datetime
 
+
+
 class User:
     def __init__(self, email, username, password, active=True):
         self.email = email
@@ -40,6 +42,11 @@ class UserManager:
         users[username] = {"email": email, "username": username, "password": password, "active": True}
         self.save_users(users)
         return User(email, username, password)
+
+    def get_user_projects(self, username):
+        projects = ProjectManager().load_projects()
+        user_projects = [proj for proj in projects.values() if proj["owner"] == username or (proj.get("members") and username in proj["members"])]
+        return user_projects
 
 class ProjectManager:
     def __init__(self, projects_file="Account/projects.json"):
@@ -142,7 +149,27 @@ class ProjectManager:
         else:
             print(f"Project with ID '{project_id}' not found.")
             return False
+        
+    def view_projects(self, username):
+        projects = self.load_projects()
 
+        # Create a table with three columns: Project Title, Owner, and Role
+        table = Table(title="Your Projects", show_header=True, header_style="bold magenta")
+        table.add_column("Project Title", justify="center", style="cyan")
+        table.add_column("Owner", justify="center", style="cyan")
+        table.add_column("Role", justify="center", style="cyan")
+
+        for proj_id, proj in projects.items():
+            # Check if the user is the owner of the project
+            if proj["owner"] == username:
+                table.add_row(proj["title"], "You", "Owner")
+            # Check if the user is a member of the project
+            elif "members" in proj and username in proj["members"]:
+                table.add_row(proj["title"], proj["owner"], "Member")
+
+        console = Console()
+        console.print(table)
+        
 
 
 def clear_screen():
@@ -164,7 +191,25 @@ def load_users():
     except FileNotFoundError:
         return {}
 
+def print_sign_up():
+    console = Console(width=50)
+    console.print("  ┏┓•          ", justify='left', style="blink bold red")
+    console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
+    console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
+    console.print("      ┛      ┛ ", justify='left', style="blink bold red")    
 
+def print_your_account():
+    console = Console(width=50)
+    console.print("  ┬ ┬┌─┐┬ ┬┬─┐  ┌─┐┌─┐┌─┐┌─┐┬ ┬┌┐┌┌┬┐", justify='center', style="blink bold white")
+    console.print("  └┬┘│ ││ │├┬┘  ├─┤│  │  │ ││ ││││ │ ", justify='center', style="blink bold white")
+    console.print("   ┴ └─┘└─┘┴└─  ┴ ┴└─┘└─┘└─┘└─┘┘└┘ ┴ \n", justify='center', style="blink bold white")
+
+def print_login():
+    console = Console(width=50)
+    console.print("  ┓     •  ", justify='left', style="blink bold green")
+    console.print("  ┃ ┏┓┏┓┓┏┓", justify='left', style="blink bold green")
+    console.print("  ┗┛┗┛┗┫┗┛┗", justify='left', style="blink bold green")
+    console.print("       ┛   ", justify='left', style="blink bold green")
 def is_valid_email(email):
     console = Console(width=50)
     while not email.endswith("@gmail.com"):
@@ -173,10 +218,7 @@ def is_valid_email(email):
 
         input("Press Enter to continue...")
         clear_screen()
-        console.print("  ┏┓•          ", justify='left', style="blink bold red")
-        console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
-        console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
-        console.print("      ┛      ┛ ", justify='left', style="blink bold red")
+        print_sign_up()
         console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
         email = input()
     return email
@@ -199,10 +241,7 @@ def is_valid_password(email, username):
         print("[cyan]Valid example: Iust@ac1[/cyan]")
         input("Press Enter to continue...")
         clear_screen()
-        console.print("  ┏┓•          ", justify='left', style="blink bold red")
-        console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
-        console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
-        console.print("      ┛      ┛ ", justify='left', style="blink bold red")
+        print_sign_up()
         console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
         console.print(email, justify='left', style="blink bold cyan")
         console.print("\nEnter your username: ", justify='left', style="blink bold green")
@@ -239,10 +278,7 @@ def create_account():
     console = Console(width=50)
     users = load_users()
 
-    console.print("  ┏┓•          ", justify='left', style="blink bold red")
-    console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
-    console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
-    console.print("      ┛      ┛ ", justify='left', style="blink bold red")
+    print_sign_up()
     console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
     email = is_valid_email(input())
 
@@ -250,18 +286,12 @@ def create_account():
         print("[bold red]Email already exists![/bold red]")
         input("Press Enter to continue...")
         clear_screen()
-        console.print("  ┏┓•          ", justify='left', style="blink bold red")
-        console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
-        console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
-        console.print("      ┛      ┛ ", justify='left', style="blink bold red")
+        print_sign_up()
         console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
         email = input()
 
     clear_screen()
-    console.print("  ┏┓•          ", justify='left', style="blink bold red")
-    console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
-    console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
-    console.print("      ┛      ┛ ", justify='left', style="blink bold red")
+    print_sign_up()
     console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
     console.print(email, justify='left', style="blink bold cyan")
     console.print("\nEnter your username: ", justify='left', style="blink bold green")
@@ -271,20 +301,14 @@ def create_account():
         print("[bold red]Username already exists![/bold red]")
         input("Press Enter to continue...")
         clear_screen()
-        console.print("  ┏┓•          ", justify='left', style="blink bold red")
-        console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
-        console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
-        console.print("      ┛      ┛ ", justify='left', style="blink bold red")
+        print_sign_up()
         console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
         console.print(email, justify='left', style="blink bold cyan")
         console.print("\nEnter your username: ", justify='left', style="blink bold green")
         username = input()
 
     clear_screen()
-    console.print("  ┏┓•          ", justify='left', style="blink bold red")
-    console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
-    console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
-    console.print("      ┛      ┛ ", justify='left', style="blink bold red")
+    print_sign_up()
     console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
     console.print(email, justify='left', style="blink bold cyan")
     console.print("\nEnter your username: ", justify='left', style="blink bold green")
@@ -292,10 +316,7 @@ def create_account():
 
     password, email, username = is_valid_password(email, username)
     clear_screen()
-    console.print("  ┏┓•          ", justify='left', style="blink bold red")
-    console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
-    console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
-    console.print("      ┛      ┛ ", justify='left', style="blink bold red")
+    print_sign_up()
     console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
     console.print(email, justify='left', style="blink bold cyan")
     console.print("\nEnter your username: ", justify='left', style="blink bold green")
@@ -309,10 +330,7 @@ def create_account():
         print("[bold red]Passwords do not match![/bold red]")
         input("Press Enter to continue...")
         clear_screen()
-        console.print("  ┏┓•          ", justify='left', style="blink bold red")
-        console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
-        console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
-        console.print("      ┛      ┛ ", justify='left', style="blink bold red")
+        print_sign_up()
         console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
         console.print(email, justify='left', style="blink bold cyan")
         console.print("\nEnter your username: ", justify='left', style="blink bold green")
@@ -320,10 +338,7 @@ def create_account():
         console.print("\nEnter your password: ", justify='left', style="blink bold blue")
         password = input()
         clear_screen()
-        console.print("  ┏┓•          ", justify='left', style="blink bold red")
-        console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
-        console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
-        console.print("      ┛      ┛ ", justify='left', style="blink bold red")
+        print_sign_up()
         console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
         console.print(email, justify='left', style="blink bold cyan")
         console.print("\nEnter your username: ", justify='left', style="blink bold green")
@@ -334,10 +349,7 @@ def create_account():
         confirm_password = input()
 
     clear_screen()
-    console.print("  ┏┓•          ", justify='left', style="blink bold red")
-    console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
-    console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
-    console.print("      ┛      ┛ ", justify='left', style="blink bold red")
+    print_sign_up()
     console.print("Enter your email address: ", justify='left', style="blink bold yellow")
     console.print(email, justify='left', style="blink bold cyan")
     console.print("\nEnter your username: ", justify='left', style="blink bold green")
@@ -357,9 +369,7 @@ def create_account():
 
 def print_account(email, username, password, console):
     console = Console(width=50)
-    console.print("  ┬ ┬┌─┐┬ ┬┬─┐  ┌─┐┌─┐┌─┐┌─┐┬ ┬┌┐┌┌┬┐", justify='center', style="blink bold white")
-    console.print("  └┬┘│ ││ │├┬┘  ├─┤│  │  │ ││ ││││ │ ", justify='center', style="blink bold white")
-    console.print("   ┴ └─┘└─┘┴└─  ┴ ┴└─┘└─┘└─┘└─┘┘└┘ ┴ \n", justify='center', style="blink bold white")
+    print_your_account()
 
     overflow_methods: List[OverflowMethod] = ["Email"]
     for overflow in overflow_methods:
@@ -390,7 +400,7 @@ def account(username):
         print("2. Delete Project")
         print("3. Add Member to Project")
         print("4. Remove Member from Project")
-        print("9. View Project with Tasks")
+        print("5. View Projects")
         print("10. Exit")
         choice = input("Choose an option: ")
         clear_screen()
@@ -426,6 +436,10 @@ def account(username):
             member = input("Enter the username or email of the member you want to remove: ")
             project_manager.remove_member_from_project(project_id, member, username)
 
+        elif choice == '5':  
+            project_manager.view_projects(username)
+            input("Press Enter to continue...")
+            clear_screen()
         else:
             break
 
@@ -434,26 +448,17 @@ def login():
     console = Console(width=50)
     users = load_users()
 
-    console.print("  ┓     •  ", justify='left', style="blink bold green")
-    console.print("  ┃ ┏┓┏┓┓┏┓", justify='left', style="blink bold green")
-    console.print("  ┗┛┗┛┗┫┗┛┗", justify='left', style="blink bold green")
-    console.print("       ┛   ", justify='left', style="blink bold green")
+    print_login()
     console.print("Enter your username: ", justify='left', style="blink bold magenta")
     username = input()
     clear_screen()
-    console.print("  ┓     •  ", justify='left', style="blink bold green")
-    console.print("  ┃ ┏┓┏┓┓┏┓", justify='left', style="blink bold green")
-    console.print("  ┗┛┗┛┗┫┗┛┗", justify='left', style="blink bold green")
-    console.print("       ┛   ", justify='left', style="blink bold green")
+    print_login()
     console.print("Enter your username: ", justify='left', style="blink bold magenta")
     console.print(username, justify='left', style="blink bold cyan")
     console.print("\nEnter your password: ", justify='left', style="blink bold blue")
     password = input()
     clear_screen()
-    console.print("  ┓     •  ", justify='left', style="blink bold green")
-    console.print("  ┃ ┏┓┏┓┓┏┓", justify='left', style="blink bold green")
-    console.print("  ┗┛┗┛┗┫┗┛┗", justify='left', style="blink bold green")
-    console.print("       ┛   ", justify='left', style="blink bold green")
+    print_login()
     console.print("Enter your username: ", justify='left', style="blink bold magenta")
     console.print(username, justify='left', style="blink bold cyan")
     console.print("\nEnter your password: ", justify='left', style="blink bold blue")
