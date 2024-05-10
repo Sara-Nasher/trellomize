@@ -1,124 +1,148 @@
+
 from rich.console import Console, OverflowMethod
 from rich.table import Table
 import json
 from rich import print
 from typing import List
 import os
-from datetime import datetime, timedelta
-import uuid
-from enum import Enum
-
+import datetime
 
 class User:
-    def __init__(self, username):
+    def __init__(self, email, username, password, active=True):
+        self.email = email
         self.username = username
+        self.password = password
+        self.active = active
 
 class Project:
     def __init__(self, project_id, title, owner):
         self.project_id = project_id
         self.title = title
         self.owner = owner
-        self.members = []
-        self.tasks = []
 
-    def add_member(self, member):
-        if member != self.owner and member not in self.members:
-            self.members.append(member)
+class UserManager:
+    def __init__(self, users_file="Account/account.json"):
+        self.users_file = users_file
 
+    def save_users(self, users):
+        with open(self.users_file, "w") as file:
+            json.dump(users, file, indent=4)
+
+    def load_users(self):
+        try:
+            with open(self.users_file, "r") as file:
+                return json.load(file)
+        except FileNotFoundError:
+            return {}
+
+    def create_user(self, email, username, password):
+        users = self.load_users()
+        users[username] = {"email": email, "username": username, "password": password, "active": True}
+        self.save_users(users)
+        return User(email, username, password)
 
 class ProjectManager:
-    def __init__(self):
-        self.projects = []
+    def __init__(self, projects_file="Account/projects.json"):
+        self.projects_file = projects_file
 
-    def create_project(self, project_id, title, owner):
-        for project in self.projects:
-            if project.project_id == project_id:
-                print("Error: Project ID already exists.")
-                return
-        new_project = Project(project_id, title, owner)
-        new_project.add_member(owner)
-        self.projects.append(new_project)
-        self.save_projects()
-
-    def delete_project(self, project_id, username):
-        for project in self.projects:
-            if project.project_id == project_id:
-                if project.owner.username == username:
-                    self.projects.remove(project)
-                    self.save_projects()
-                    print("Project deleted successfully.")
-                    input("Press Enter to continue...")
-                    clear_screen()
-                    return
-                else:
-                    print("You are not the owner of this project. You cannot delete it.")
-                    return
-        print("Error: Project ID not found.")
-
-    def add_member_to_project(self, project_id, member):
-        for project in self.projects:
-            if project.project_id == project_id:
-                project.add_member(member)
-                self.save_projects()
-                return
-        print("Error: Project ID not found.")
-
-    def remove_member_from_project(self, project_id, member_to_remove, requesting_user):
-        for project in self.projects:
-            if project.project_id == project_id:
-                if member_to_remove.username == project.owner.username:
-                    print("Error: Owner cannot be removed from the project.")
-                    return
-                if requesting_user == project.owner.username:
-                    if member_to_remove.username in [member.username for member in project.members]:
-                        project.members = [member for member in project.members if
-                        member.username != member_to_remove.username]
-                        self.save_projects()
-                        print(f"{member_to_remove.username} has been removed from the project.")
-                        input("Press Enter to continue...")
-                        clear_screen()
-                        return
-                    else:
-                        print("Error: The specified user is not a member of this project.")
-                        return
-                else:
-                    print("Error: Only project owner can remove members.")
-                    return
-        print("Error: Project ID not found.")
-
-    def get_user_projects(self, username):
-        user_projects = []
-        for project in self.projects:
-            if username == project.owner.username:
-                user_projects.append((project.project_id, project.title, "Owner"))
-            elif username in [member.username for member in project.members]:
-                user_projects.append((project.project_id, project.title, "Member"))
-        return user_projects
-
-    def save_projects(self):
-        projects_json = []
-        for project in self.projects:
-            project_json = {
-                "project_id": project.project_id,
-                "title": project.title,
-                "owner": project.owner.username,
-                "members": [member.username for member in project.members],
-            }
-            projects_json.append(project_json)
-        with open(os.path.join("Account", "projects.json"), "w") as f: 
-            json.dump(projects_json, f, default=str)
+    def save_projects(self, projects):
+        with open(self.projects_file, "w") as file:
+            json.dump(projects, file, indent=4)
 
     def load_projects(self):
-        if os.path.exists(os.path.join("Account", "projects.json")):
-            with open(os.path.join("Account", "projects.json"), "r") as f:
-                project_data = json.load(f)
-                for data in project_data:
-                    owner = User(data["owner"])
-                    members = [User(member) for member in data["members"]]
-                    project = Project(data["project_id"], data["title"], owner)
-                    for member in members:
-                        project.add_member(member)
-                    self.projects.append(project)
+        try:
+            with open(self.projects_file, "r") as file:
+                return json.load(file)
+        except FileNotFoundError:
+            return {}
+        
+    def check_project_existence(self, project_id):
+        projects = self.load_projects()
+        return project_id in projects
+    
+    def create_project(self, project_id, title, owner):
+        projects = self.load_projects()
+        
+        # Check if the project_id already exists
+        if project_id in projects:
+            print("[bold red]Project ID already exists! Please choose a different one.[/bold red]")
+            input("Press Enter to continue...")
+            clear_screen()
+            return None
+
+        # Check if the project with the same title already exists for the owner
+        for proj in projects.values():
+            if proj["title"] == title and proj["owner"] == owner:
+                print("[bold red]You already have a project with the same title! Please choose a different title.[/bold red]")
+                input("Press Enter to continue...")
+                clear_screen()
+                return None
+            
+        # If all checks pass, create the project
+        print("Project created successfully!")
+        input("Press Enter to continue...")
+        clear_screen()
+        projects[project_id] = {"title": title, "project_id": project_id, "owner": owner}
+        self.save_projects(projects)
+        return Project(project_id, title, owner)
+        
+    
+    def delete_project(self, project_id, owner):
+        projects = self.load_projects()
+        if project_id in projects:
+            if projects[project_id]["owner"] == owner:
+                del projects[project_id]
+                self.save_projects(projects)
+                return True
+            else:
+                print("[bold red]You are not the owner of this project![/bold red]")
+                return False
+        else:
+            print("[bold red]Project not found![/bold red]")
+            return False
+
+    def add_member_to_project(self, project_id, member, username):
+        projects = self.load_projects()
+        users = UserManager().load_users()
+        
+        if project_id in projects:
+            project = projects[project_id]
+            if project["owner"] == username:
+                if member in users:
+                    project["members"] = project.get("members", [])
+                    if member not in project["members"]:
+                        project["members"].append(member)
+                        print(f"Member '{member}' added to project '{project['title']}' successfully.")
+                    else:
+                        print(f"Member '{member}' is already a member of project '{project['title']}'.")
+                    self.save_projects(projects)
+                else:
+                    print("[bold red]User not found![/bold red]")
+            else:
+                print("[bold red]You are not the owner of this project![/bold red]")
+        else:
+            print(f"Project with ID '{project_id}' not found.")
+
+    def remove_member_from_project(self, project_id, member, username):
+        projects = self.load_projects()
+        if project_id in projects:
+            project = projects[project_id]
+            if project["owner"] == username:
+                if "members" in project and member in project["members"]:
+                    project["members"].remove(member)
+                    print(f"Member '{member}' removed from project '{project['title']}' successfully.")
+                    self.save_projects(projects)
+                    return True
+                else:
+                    print(f"Member '{member}' is not a member of project '{project['title']}'")
+                    return False
+            else:
+                print("[bold red]You are not the owner of this project![/bold red]")
+                return False
+        else:
+            print(f"Project with ID '{project_id}' not found.")
+            return False
+
 
 
 def clear_screen():
@@ -140,27 +164,6 @@ def load_users():
     except FileNotFoundError:
         return {}
 
-def print_sign_up():
-    console = Console(width=50)
-    console.print("  ┏┓•          ", justify='left', style="blink bold red")
-    console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
-    console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
-    console.print("      ┛      ┛ ", justify='left', style="blink bold red")
-
-def print_your_account():
-    console = Console(width=50)
-    console.print("  ┬ ┬┌─┐┬ ┬┬─┐  ┌─┐┌─┐┌─┐┌─┐┬ ┬┌┐┌┌┬┐", justify='center', style="blink bold white")
-    console.print("  └┬┘│ ││ │├┬┘  ├─┤│  │  │ ││ ││││ │ ", justify='center', style="blink bold white")
-    console.print("   ┴ └─┘└─┘┴└─  ┴ ┴└─┘└─┘└─┘└─┘┘└┘ ┴ \n", justify='center', style="blink bold white")
-
-
-def print_login():
-    console = Console(width=50)
-    console.print("  ┓     •  ", justify='left', style="blink bold green")
-    console.print("  ┃ ┏┓┏┓┓┏┓", justify='left', style="blink bold green")
-    console.print("  ┗┛┗┛┗┫┗┛┗", justify='left', style="blink bold green")
-    console.print("       ┛   ", justify='left', style="blink bold green")
-
 
 def is_valid_email(email):
     console = Console(width=50)
@@ -170,7 +173,10 @@ def is_valid_email(email):
 
         input("Press Enter to continue...")
         clear_screen()
-        print_sign_up()
+        console.print("  ┏┓•          ", justify='left', style="blink bold red")
+        console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
+        console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
+        console.print("      ┛      ┛ ", justify='left', style="blink bold red")
         console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
         email = input()
     return email
@@ -193,7 +199,10 @@ def is_valid_password(email, username):
         print("[cyan]Valid example: Iust@ac1[/cyan]")
         input("Press Enter to continue...")
         clear_screen()
-        print_sign_up()
+        console.print("  ┏┓•          ", justify='left', style="blink bold red")
+        console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
+        console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
+        console.print("      ┛      ┛ ", justify='left', style="blink bold red")
         console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
         console.print(email, justify='left', style="blink bold cyan")
         console.print("\nEnter your username: ", justify='left', style="blink bold green")
@@ -226,10 +235,14 @@ def print_account(email, username, password, console):
 
 
 def create_account():
+    user_manager = UserManager()
     console = Console(width=50)
     users = load_users()
 
-    print_sign_up()
+    console.print("  ┏┓•          ", justify='left', style="blink bold red")
+    console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
+    console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
+    console.print("      ┛      ┛ ", justify='left', style="blink bold red")
     console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
     email = is_valid_email(input())
 
@@ -237,12 +250,18 @@ def create_account():
         print("[bold red]Email already exists![/bold red]")
         input("Press Enter to continue...")
         clear_screen()
-        print_sign_up()
+        console.print("  ┏┓•          ", justify='left', style="blink bold red")
+        console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
+        console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
+        console.print("      ┛      ┛ ", justify='left', style="blink bold red")
         console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
         email = input()
 
     clear_screen()
-    print_sign_up()
+    console.print("  ┏┓•          ", justify='left', style="blink bold red")
+    console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
+    console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
+    console.print("      ┛      ┛ ", justify='left', style="blink bold red")
     console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
     console.print(email, justify='left', style="blink bold cyan")
     console.print("\nEnter your username: ", justify='left', style="blink bold green")
@@ -252,14 +271,20 @@ def create_account():
         print("[bold red]Username already exists![/bold red]")
         input("Press Enter to continue...")
         clear_screen()
-        print_sign_up()
+        console.print("  ┏┓•          ", justify='left', style="blink bold red")
+        console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
+        console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
+        console.print("      ┛      ┛ ", justify='left', style="blink bold red")
         console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
         console.print(email, justify='left', style="blink bold cyan")
         console.print("\nEnter your username: ", justify='left', style="blink bold green")
         username = input()
 
     clear_screen()
-    print_sign_up()
+    console.print("  ┏┓•          ", justify='left', style="blink bold red")
+    console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
+    console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
+    console.print("      ┛      ┛ ", justify='left', style="blink bold red")
     console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
     console.print(email, justify='left', style="blink bold cyan")
     console.print("\nEnter your username: ", justify='left', style="blink bold green")
@@ -267,7 +292,10 @@ def create_account():
 
     password, email, username = is_valid_password(email, username)
     clear_screen()
-    print_sign_up()
+    console.print("  ┏┓•          ", justify='left', style="blink bold red")
+    console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
+    console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
+    console.print("      ┛      ┛ ", justify='left', style="blink bold red")
     console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
     console.print(email, justify='left', style="blink bold cyan")
     console.print("\nEnter your username: ", justify='left', style="blink bold green")
@@ -281,7 +309,10 @@ def create_account():
         print("[bold red]Passwords do not match![/bold red]")
         input("Press Enter to continue...")
         clear_screen()
-        print_sign_up()
+        console.print("  ┏┓•          ", justify='left', style="blink bold red")
+        console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
+        console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
+        console.print("      ┛      ┛ ", justify='left', style="blink bold red")
         console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
         console.print(email, justify='left', style="blink bold cyan")
         console.print("\nEnter your username: ", justify='left', style="blink bold green")
@@ -289,7 +320,10 @@ def create_account():
         console.print("\nEnter your password: ", justify='left', style="blink bold blue")
         password = input()
         clear_screen()
-        print_sign_up()
+        console.print("  ┏┓•          ", justify='left', style="blink bold red")
+        console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
+        console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
+        console.print("      ┛      ┛ ", justify='left', style="blink bold red")
         console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
         console.print(email, justify='left', style="blink bold cyan")
         console.print("\nEnter your username: ", justify='left', style="blink bold green")
@@ -300,7 +334,10 @@ def create_account():
         confirm_password = input()
 
     clear_screen()
-    print_sign_up()
+    console.print("  ┏┓•          ", justify='left', style="blink bold red")
+    console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
+    console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
+    console.print("      ┛      ┛ ", justify='left', style="blink bold red")
     console.print("Enter your email address: ", justify='left', style="blink bold yellow")
     console.print(email, justify='left', style="blink bold cyan")
     console.print("\nEnter your username: ", justify='left', style="blink bold green")
@@ -312,20 +349,18 @@ def create_account():
 
     users[username] = {"email": email, "username": username, "password": password, "active": True}
     save_users(users)
-
-    user_filename = f"{username}.json"
-    user_path = os.path.join("users", user_filename)
-    with open(user_path, 'w') as file:
-        json.dump(users[username], file)
-
     print("[bold green]\nAccount created successfully![/bold green]")
     input("Press Enter to continue...")
+    user_manager.create_user(email, username, password)
     clear_screen()
 
 
 def print_account(email, username, password, console):
     console = Console(width=50)
-    print_your_account()
+    console.print("  ┬ ┬┌─┐┬ ┬┬─┐  ┌─┐┌─┐┌─┐┌─┐┬ ┬┌┐┌┌┬┐", justify='center', style="blink bold white")
+    console.print("  └┬┘│ ││ │├┬┘  ├─┤│  │  │ ││ ││││ │ ", justify='center', style="blink bold white")
+    console.print("   ┴ └─┘└─┘┴└─  ┴ ┴└─┘└─┘└─┘└─┘┘└┘ ┴ \n", justify='center', style="blink bold white")
+
     overflow_methods: List[OverflowMethod] = ["Email"]
     for overflow in overflow_methods:
         console.rule(overflow)
@@ -347,68 +382,78 @@ def print_account(email, username, password, console):
         console.print(password, overflow=overflow_p, style="blink bold cyan", justify='center')
         print("\n")
 
-def account():
+def account(username):
     project_manager = ProjectManager()
-    project_manager.load_projects()
 
     while True:
         print("1. Create Project")
         print("2. Delete Project")
         print("3. Add Member to Project")
         print("4. Remove Member from Project")
-        print("5. Exit")
-
-        choice = input("Enter your choice: ")
-
-        if choice == "1":
-            project_id = input("Enter Project ID: ")
-            title = input("Enter Project Title: ")
-            owner_username = input("Enter Owner Username: ")
-            owner = User(owner_username)
-            project_manager.create_project(project_id, title, owner)
-
-        elif choice == "2":
-            project_id = input("Enter Project ID: ")
-            username = input("Enter Your Username: ")
-            project_manager.delete_project(project_id, username)
+        print("9. View Project with Tasks")
+        print("10. Exit")
+        choice = input("Choose an option: ")
+        clear_screen()
+        if choice == '1':
+            project_id = input("Enter project ID: ")
+            title = input("Enter project title: ")
+            project_manager.create_project(project_id, title, username)
             
 
-        elif choice == "3":
-            project_id = input("Enter Project ID: ")
-            member_username = input("Enter Member Username: ")
-            member = User(member_username)
-            project_manager.add_member_to_project(project_id, member)
-
-        elif choice == "4":
-            project_id = input("Enter Project ID: ")
-            member_to_remove_username = input("Enter Member Username to Remove: ")
-            member_to_remove = User(member_to_remove_username)
-            requesting_user = input("Enter Your Username: ")
-            project_manager.remove_member_from_project(project_id, member_to_remove, requesting_user)
-
+        elif choice == '2':
+            project_id = input("Enter project ID to delete: ")
+            confirm = input("Are you sure you want to delete this project? (y/n): ")
+            if confirm.lower() == 'y':
+                if project_manager.delete_project(project_id, username):
+                    print("Project deleted successfully!")
+                    input("Press Enter to continue...")
+                    clear_screen()
+                else:
+                    print("[bold red]Failed to delete project![/bold red]")
+                    input("Press Enter to continue...")
+                    clear_screen()
+            else:
+                print("Deletion canceled.")
+                input("Press Enter to continue...")
+                clear_screen()
+        elif choice == '3':
+            project_id = input("Enter project ID: ")
+            member = input("Enter the username or email of the member you want to add: ")
+            project_manager.add_member_to_project(project_id, member, username)
         
-        elif choice == "5":
-            print("Exiting...")
-            break
+        elif choice == '4':
+            project_id = input("Enter project ID: ")
+            member = input("Enter the username or email of the member you want to remove: ")
+            project_manager.remove_member_from_project(project_id, member, username)
+
         else:
-            print("Invalid Choice!")
+            break
 
 
 def login():
     console = Console(width=50)
     users = load_users()
-    print_login()
 
+    console.print("  ┓     •  ", justify='left', style="blink bold green")
+    console.print("  ┃ ┏┓┏┓┓┏┓", justify='left', style="blink bold green")
+    console.print("  ┗┛┗┛┗┫┗┛┗", justify='left', style="blink bold green")
+    console.print("       ┛   ", justify='left', style="blink bold green")
     console.print("Enter your username: ", justify='left', style="blink bold magenta")
     username = input()
     clear_screen()
-    print_login()
+    console.print("  ┓     •  ", justify='left', style="blink bold green")
+    console.print("  ┃ ┏┓┏┓┓┏┓", justify='left', style="blink bold green")
+    console.print("  ┗┛┗┛┗┫┗┛┗", justify='left', style="blink bold green")
+    console.print("       ┛   ", justify='left', style="blink bold green")
     console.print("Enter your username: ", justify='left', style="blink bold magenta")
     console.print(username, justify='left', style="blink bold cyan")
     console.print("\nEnter your password: ", justify='left', style="blink bold blue")
     password = input()
     clear_screen()
-    print_login()
+    console.print("  ┓     •  ", justify='left', style="blink bold green")
+    console.print("  ┃ ┏┓┏┓┓┏┓", justify='left', style="blink bold green")
+    console.print("  ┗┛┗┛┗┫┗┛┗", justify='left', style="blink bold green")
+    console.print("       ┛   ", justify='left', style="blink bold green")
     console.print("Enter your username: ", justify='left', style="blink bold magenta")
     console.print(username, justify='left', style="blink bold cyan")
     console.print("\nEnter your password: ", justify='left', style="blink bold blue")
@@ -421,16 +466,7 @@ def login():
         print_account(users[username]['email'], username, users[username]['password'], console)
         input("Press Enter to continue...")
         clear_screen()
-        '''
-        remember_choice = input("[cyan]Do you want to remember your username and password for a week? (y/n)[/cyan]")
-        if remember_choice.lower() == 'y':
-            expiry_date = datetime.datetime.now() + datetime.timedelta(days=7)
-            users[username]["remembered_until"] = expiry_date.strftime("%Y-%m-%d")
-            save_users(users)
-        input("Press Enter to continue...")
-        clear_screen()
-        '''
-        account()
+        account(username)
     else:
         print("[bold red]Invalid username or password![/bold red]")
         print(f"[cyan]Do you have an account?(y/n)[/cyan]")
@@ -447,10 +483,10 @@ def login():
             input("Press Enter to continue...")
             clear_screen()
 
-
-
 def main():
     clear_screen()
+    user_manager = UserManager()
+    project_manager = ProjectManager()
     while True:
         table = Table(width=40, show_header=True, show_lines=True, style="bold magenta")
 
