@@ -588,7 +588,6 @@ def edit_task_menu(task):
             task.description = new_description
             print("Description changed successfully!")
         elif choice == '3':
-            # Change assignees
             pass
         elif choice == '4':
             new_deadline_input = input("Enter the new end date and time (format YYYY-MM-DD HH:MM): ")
@@ -634,7 +633,7 @@ def edit_task_menu(task):
                 else:
                     print("Invalid comment number!")
             elif comment_choice == '3':
-                pass  # Exit from comments menu
+                pass  
             else:
                 print("Invalid choice!")
 
@@ -664,13 +663,26 @@ def edit_tasks(username):
     for index, task in enumerate(tasks, 1):
         print(f"{index}. {task['title']}")
 
-    task_choice = int(input("Enter the task number: ")) - 1
-    selected_task = tasks[task_choice] if 0 <= task_choice < len(tasks) else None
+    while True:
+        task_choice = input("Enter the project number: ")
+        if re.match("^\d+$",  task_choice):
+            task_choice = int( task_choice) - 1
+            if 0 <=  task_choice < len(tasks):
+                break
+            else:
+                print("Invalid project choice")
+                input("Press Enter to continue...")
+                clear_screen()
+                for index, task in enumerate(tasks, 1):
+                    print(f"{index}. {task['title']}")
+        else:
+            print("Please enter a valid project number.")
+            input("Press Enter to continue...")
+            clear_screen()
+            for index, task in enumerate(tasks, 1):
+                print(f"{index}. {task['title']}")
 
-    if not selected_task:
-        print("Invalid task choice")
-        return
-
+    selected_task = tasks[task_choice]
     selected_task_obj = Task(selected_task['title'], selected_task['description'], selected_task['deadline'], selected_task['assignees'], Priority(selected_task['priority']), Status(selected_task['status']), selected_task['comments'])
     edit_task_menu(selected_task_obj)
 
