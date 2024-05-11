@@ -318,24 +318,7 @@ def is_valid_password(email, username):
     return (password, email, username)
 
 
-def print_account(email, username, password, console):
-    overflow_methods: List[OverflowMethod] = ["Email"]
-    for overflow in overflow_methods:
-        console.rule(overflow)
-        console.print(email, overflow=overflow, style="bold white")
-        print("\n")
 
-    overflow_methods_u: List_u[OverflowMethod] = ["Username"]
-    for overflow_u in overflow_methods_u:
-        console.rule(overflow_u)
-        console.print(username, overflow=overflow_u, style="bold white")
-        print("\n")
-
-    overflow_methods_p: List_p[OverflowMethod] = ["Password"]
-    for overflow_p in overflow_methods_p:
-        console.rule(overflow_p)
-        console.print(password, overflow=overflow_p, style="bold white")
-        print("\n")
 
 
 def create_account():
@@ -457,6 +440,7 @@ def print_account(email, username, password, console):
         console.print(password, overflow=overflow_p, style="blink bold cyan", justify='center')
         print("\n")
 
+        
 def select_project(username):
     projects = ProjectManager().load_projects()
     owner_projects = [proj for proj in projects.values() if proj["owner"] == username]
@@ -519,6 +503,115 @@ def create_task(username):
     new_task = task_manager.create_task(project_id, title, description, end_datetime, selected_members, selected_priority, selected_status, comments)
     print("Task created successfully!")
 
+def edit_task_menu(task):
+    while True:
+        print("Edit Task Menu:")
+        print("1. Change Title")
+        print("2. Change Description")
+        print("3. Change Assignees")
+        print("4. Change Deadline")
+        print("5. Change Priority")
+        print("6. Change Status")
+        print("7. Comments")
+        print("8. Exit")
+
+        choice = input("Choose an option: ")
+        clear_screen()
+
+        if choice == '1':
+            new_title = input("Enter the new title: ")
+            task.title = new_title
+            print("Title changed successfully!")
+        elif choice == '2':
+            new_description = input("Enter the new description: ")
+            task.description = new_description
+            print("Description changed successfully!")
+        elif choice == '3':
+            # Change assignees
+            pass
+        elif choice == '4':
+            new_deadline_input = input("Enter the new end date and time (format YYYY-MM-DD HH:MM): ")
+            new_deadline = datetime.datetime.strptime(new_deadline_input, "%Y-%m-%d %H:%M")
+            task.deadline = new_deadline
+            print("Deadline changed successfully!")
+        elif choice == '5':
+            print("Select Priority: ")
+            for index, priority in enumerate(Priority, 1):
+                print(f"{index}. {priority.value}")
+            priority_choice = int(input("Enter the priority number: ")) - 1
+            selected_priority = list(Priority)[priority_choice] if 0 <= priority_choice < len(Priority) else None
+            if selected_priority:
+                task.priority = selected_priority
+                print("Priority changed successfully!")
+            else:
+                print("Invalid priority choice!")
+        elif choice == '6':
+            print("Select Status: ")
+            for index, status in enumerate(Status, 1):
+                print(f"{index}. {status.value}")
+            status_choice = int(input("Enter the status number: ")) - 1
+            selected_status = list(Status)[status_choice] if 0 <= status_choice < len(Status) else None
+            if selected_status:
+                task.status = selected_status
+                print("Status changed successfully!")
+            else:
+                print("Invalid status choice!")
+        elif choice == '7':
+            print("Comments:")
+            for index, comment in enumerate(task.comments, 1):
+                print(f"{index}. {comment}")
+            comment_choice = input("Choose an option (1. Add Comment, 2. Delete Comment, 3. Exit): ")
+            if comment_choice == '1':
+                new_comment = input("Enter the new comment: ")
+                task.add_comment(new_comment)
+                print("Comment added successfully!")
+            elif comment_choice == '2':
+                comment_index = int(input("Enter the comment number to delete: ")) - 1
+                if 0 <= comment_index < len(task.comments):
+                    deleted_comment = task.comments.pop(comment_index)
+                    print(f"Comment '{deleted_comment}' deleted successfully!")
+                else:
+                    print("Invalid comment number!")
+            elif comment_choice == '3':
+                pass  # Exit from comments menu
+            else:
+                print("Invalid choice!")
+
+        elif choice == '8':
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
+
+def edit_tasks(username):
+    project_manager = ProjectManager()
+    task_manager = TaskManager()
+
+    project = select_project(username)
+    if not project:
+        return
+
+    project_id = project["project_id"]
+
+    tasks = [task for task in task_manager.tasks if task["project_id"] == project_id]
+
+    if not tasks:
+        print("No tasks found for this project.")
+        return
+
+    print("Select a Task:")
+    for index, task in enumerate(tasks, 1):
+        print(f"{index}. {task['title']}")
+
+    task_choice = int(input("Enter the task number: ")) - 1
+    selected_task = tasks[task_choice] if 0 <= task_choice < len(tasks) else None
+
+    if not selected_task:
+        print("Invalid task choice")
+        return
+
+    selected_task_obj = Task(selected_task['title'], selected_task['description'], selected_task['deadline'], selected_task['assignees'], Priority(selected_task['priority']), Status(selected_task['status']), selected_task['comments'])
+    edit_task_menu(selected_task_obj)
 
 def tasks_menu(username):
     project_manager = ProjectManager()
@@ -535,7 +628,7 @@ def tasks_menu(username):
         if choice == '1':
             create_task(username)
         elif choice == '2':
-            pass
+            edit_tasks(username)
         elif choice == '3':
             pass
         elif choice == '4':
