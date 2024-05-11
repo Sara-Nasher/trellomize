@@ -8,6 +8,8 @@ import os
 import datetime
 from enum import Enum
 import uuid
+import re
+
 
 class Priority(Enum):
     CRITICAL = "CRITICAL"
@@ -445,17 +447,76 @@ def select_project(username):
     projects = ProjectManager().load_projects()
     owner_projects = [proj for proj in projects.values() if proj["owner"] == username]
     
+    if not owner_projects:
+        print("You are not associated with any projects.")
+        input("Press Enter to continue...")
+        clear_screen()
+        return None
+    
     print("Select a Project:")
     for index, project in enumerate(owner_projects, 1):
         print(f"{index}. {project['title']}")
     
-    project_choice = int(input("Enter the project number: ")) - 1
-    selected_project = owner_projects[project_choice] if 0 <= project_choice < len(owner_projects) else None
-    
-    if not selected_project:
-        print("Invalid project choice")
-        return None
+    while True:
+        project_choice = input("Enter the project number: ")
+        if re.match("^\d+$", project_choice):
+            project_choice = int(project_choice) - 1
+            if 0 <= project_choice < len(owner_projects):
+                break
+            else:
+                print("Invalid project choice")
+                input("Press Enter to continue...")
+                clear_screen()
+                for index, project in enumerate(owner_projects, 1):
+                    print(f"{index}. {project['title']}")
+        else:
+            print("Please enter a valid project number.")
+            input("Press Enter to continue...")
+            clear_screen()
+            for index, project in enumerate(owner_projects, 1):
+                print(f"{index}. {project['title']}")
+
+
+    selected_project = owner_projects[project_choice]
     return selected_project
+
+def show_project(username):
+    projects = ProjectManager().load_projects()
+    person_projects = [proj for proj in projects.values() if proj["owner"] == username or (proj.get("members") and username in proj["members"])]
+
+    if not person_projects:
+        print("You are not associated with any projects.")
+        input("Press Enter to continue...")
+        clear_screen()
+        return None
+
+    print("Select a Project:")
+    for index, project in enumerate(person_projects, 1):
+        print(f"{index}. {project['title']}")
+    
+    while True:
+        project_choice = input("Enter the project number: ")
+        if re.match("^\d+$", project_choice):
+            project_choice = int(project_choice) - 1
+            if 0 <= project_choice < len(person_projects):
+                break
+            else:
+                print("Invalid project choice")
+                input("Press Enter to continue...")
+                clear_screen()
+                for index, project in enumerate(person_projects, 1):
+                    print(f"{index}. {project['title']}")
+        else:
+            print("Please enter a valid project number.")
+            input("Press Enter to continue...")
+            clear_screen()
+            for index, project in enumerate(person_projects, 1):
+                print(f"{index}. {project['title']}")
+
+
+    selected_project = person_projects[project_choice]
+    return selected_project
+
 
 def create_task(username):
     project_manager = ProjectManager()
@@ -587,7 +648,7 @@ def edit_tasks(username):
     project_manager = ProjectManager()
     task_manager = TaskManager()
 
-    project = select_project(username)
+    project = show_project(username)
     if not project:
         return
 
