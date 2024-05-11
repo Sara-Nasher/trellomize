@@ -1,12 +1,75 @@
-
 from rich.console import Console, OverflowMethod
 from rich.table import Table
+from rich import print
 import json
 from rich import print
 from typing import List
 import os
 import datetime
+from enum import Enum
+import uuid
 
+class Priority(Enum):
+    CRITICAL = "CRITICAL"
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+
+# Enum for Task Status
+class Status(Enum):
+    BACKLOG = "BACKLOG"
+    TODO = "TODO"
+    DOING = "DOING"
+    DONE = "DONE"
+    ARCHIVED = "ARCHIVED"
+
+
+class Task:
+    def __init__(self, title, description, deadline, assignees, priority=Priority.LOW, status=Status.BACKLOG, comments=None):
+        self.title = title
+        self.description = description
+        self.deadline = deadline
+        self.assignees = assignees
+        self.priority = priority
+        self.status = status
+        self.comments = comments if comments else []
+
+    def add_comment(self, comment):
+        self.comments.append(comment)
+
+class TaskManager:
+    def __init__(self, tasks_file="Account/tasks.json"):
+        self.tasks_file = tasks_file
+        self.tasks = self.load_tasks()
+
+    def save_tasks(self):
+        with open(self.tasks_file, "w") as file:
+            json.dump(self.tasks, file, indent=4)
+
+    def load_tasks(self):
+        try:
+            with open(self.tasks_file, "r") as file:
+                return json.load(file)
+        except FileNotFoundError:
+            return []
+
+    def create_task(self, project_id, title, description, deadline, assignees, priority=Priority.LOW, status=Status.BACKLOG, comments=None):
+        task_id = str(uuid.uuid4())
+        task = {
+            "task_id": task_id,
+            "project_id": project_id,
+            "title": title,
+            "description": description,
+            "deadline": deadline.isoformat(),
+            "assignees": assignees,
+            "priority": priority.value,
+            "status": status.value,
+            "comments": comments if comments else [],
+            "created_at": datetime.datetime.now().isoformat()
+        }
+        self.tasks.append(task)
+        self.save_tasks()
+        return task
 
 
 class User:
@@ -22,6 +85,8 @@ class Project:
         self.title = title
         self.owner = owner
 
+
+    
 class UserManager:
     def __init__(self, users_file="Account/account.json"):
         self.users_file = users_file
@@ -169,9 +234,9 @@ class ProjectManager:
 
         console = Console()
         console.print(table)
+
+
         
-
-
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -392,6 +457,93 @@ def print_account(email, username, password, console):
         console.print(password, overflow=overflow_p, style="blink bold cyan", justify='center')
         print("\n")
 
+def select_project(username):
+    projects = ProjectManager().load_projects()
+    owner_projects = [proj for proj in projects.values() if proj["owner"] == username]
+    
+    print("Select a Project:")
+    for index, project in enumerate(owner_projects, 1):
+        print(f"{index}. {project['title']}")
+    
+    project_choice = int(input("Enter the project number: ")) - 1
+    selected_project = owner_projects[project_choice] if 0 <= project_choice < len(owner_projects) else None
+    
+    if not selected_project:
+        print("Invalid project choice")
+        return None
+    return selected_project
+
+def create_task(username):
+    project_manager = ProjectManager()
+    task_manager = TaskManager()
+    project = select_project(username)
+    if not project:
+        return
+
+    project_id = project["project_id"]
+    title = input("Enter the task title: ")
+    description = input("Enter the task description: ")
+    
+    end_datetime_input = input("Enter the end date and time (format YYYY-MM-DD HH:MM), leave empty for default: ")
+    end_datetime = datetime.datetime.now() + datetime.timedelta(days=1)  # Default 24 hours from now
+    if end_datetime_input:
+        end_datetime = datetime.datetime.strptime(end_datetime_input, "%Y-%m-%d %H:%M")
+
+    members = project.get("members", [])
+    print("Select Members:")
+    for index, member in enumerate(members, 1):
+        print(f"{index}. {member}")
+
+    member_choices = input("Enter the member numbers (comma-separated): ")
+    selected_members = [members[int(choice)-1] for choice in member_choices.split(',') if 0 < int(choice) <= len(members)]
+    
+    priority = input("Select Priority: (1. CRITICAL, 2. HIGH, 3. MEDIUM, 4. LOW): ")
+    selected_priority = {
+        '1': Priority.CRITICAL,
+        '2': Priority.HIGH,
+        '3': Priority.MEDIUM,
+        '4': Priority.LOW
+    }.get(priority, Priority.LOW)
+
+    status = input("Select Status: (1. BACKLOG, 2. TODO, 3. DOING, 4. DONE, 5. ARCHIVED): ")
+    selected_status = {
+        '1': Status.BACKLOG,
+        '2': Status.TODO,
+        '3': Status.DOING,
+        '4': Status.DONE,
+        '5': Status.ARCHIVED
+    }.get(status, Status.BACKLOG)
+
+    comments = input("Enter comments for the task: ").strip()
+
+    new_task = task_manager.create_task(project_id, title, description, end_datetime, selected_members, selected_priority, selected_status, comments)
+    print("Task created successfully!")
+
+
+def tasks_menu(username):
+    project_manager = ProjectManager()
+    while True:
+        print("Tasks Menu:")
+        print("1. Create Task")
+        print("2. Edit Task")
+        print("3. Delete Task")
+        print("4. Exit")
+
+        choice = input("Choose an option: ")
+        clear_screen()
+
+        if choice == '1':
+            create_task(username)
+        elif choice == '2':
+            pass
+        elif choice == '3':
+            pass
+        elif choice == '4':
+            break
+        else:
+            print("Invalid choice. Please try again.")
+            
+
 def account(username):
     project_manager = ProjectManager()
 
@@ -401,7 +553,8 @@ def account(username):
         print("3. Add Member to Project")
         print("4. Remove Member from Project")
         print("5. View Projects")
-        print("10. Exit")
+        print("6. Tasks")
+        print("7. Logout")
         choice = input("Choose an option: ")
         clear_screen()
         if choice == '1':
@@ -428,7 +581,7 @@ def account(username):
                 clear_screen()
         elif choice == '3':
             project_id = input("Enter project ID: ")
-            member = input("Enter the username or email of the member you want to add: ")
+            member = input("Enter the username of the member you want to add: ")
             project_manager.add_member_to_project(project_id, member, username)
         
         elif choice == '4':
@@ -440,8 +593,15 @@ def account(username):
             project_manager.view_projects(username)
             input("Press Enter to continue...")
             clear_screen()
-        else:
+
+        elif choice == '6':
+            tasks_menu(username)
+
+
+        elif choice == '7':
             break
+        else:
+            print("Invalid choice. Please try again.")
 
 
 def login():
