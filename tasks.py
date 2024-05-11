@@ -53,6 +53,23 @@ class TaskManager:
         except FileNotFoundError:
             return []
 
+    def create_task(self, project_id, title, description, deadline, assignees, priority=Priority.LOW, status=Status.BACKLOG, comments=None):
+        task_id = str(uuid.uuid4())
+        task = {
+            "task_id": task_id,
+            "project_id": project_id,
+            "title": title,
+            "description": description,
+            "deadline": deadline.isoformat(),
+            "assignees": assignees,
+            "priority": priority.value,
+            "status": status.value,
+            "comments": comments if comments else [],
+            "created_at": datetime.datetime.now().isoformat()
+        }
+        self.tasks.append(task)
+        self.save_tasks()
+        return task
 
 
 class User:
@@ -439,6 +456,68 @@ def print_account(email, username, password, console):
         print("\n")
         console.print(password, overflow=overflow_p, style="blink bold cyan", justify='center')
         print("\n")
+
+def select_project(username):
+    projects = ProjectManager().load_projects()
+    owner_projects = [proj for proj in projects.values() if proj["owner"] == username]
+    
+    print("Select a Project:")
+    for index, project in enumerate(owner_projects, 1):
+        print(f"{index}. {project['title']}")
+    
+    project_choice = int(input("Enter the project number: ")) - 1
+    selected_project = owner_projects[project_choice] if 0 <= project_choice < len(owner_projects) else None
+    
+    if not selected_project:
+        print("Invalid project choice")
+        return None
+    return selected_project
+
+def create_task(username):
+    project_manager = ProjectManager()
+    task_manager = TaskManager()
+    project = select_project(username)
+    if not project:
+        return
+
+    project_id = project["project_id"]
+    title = input("Enter the task title: ")
+    description = input("Enter the task description: ")
+    
+    end_datetime_input = input("Enter the end date and time (format YYYY-MM-DD HH:MM), leave empty for default: ")
+    end_datetime = datetime.datetime.now() + datetime.timedelta(days=1)  # Default 24 hours from now
+    if end_datetime_input:
+        end_datetime = datetime.datetime.strptime(end_datetime_input, "%Y-%m-%d %H:%M")
+
+    members = project.get("members", [])
+    print("Select Members:")
+    for index, member in enumerate(members, 1):
+        print(f"{index}. {member}")
+
+    member_choices = input("Enter the member numbers (comma-separated): ")
+    selected_members = [members[int(choice)-1] for choice in member_choices.split(',') if 0 < int(choice) <= len(members)]
+    
+    priority = input("Select Priority: (1. CRITICAL, 2. HIGH, 3. MEDIUM, 4. LOW): ")
+    selected_priority = {
+        '1': Priority.CRITICAL,
+        '2': Priority.HIGH,
+        '3': Priority.MEDIUM,
+        '4': Priority.LOW
+    }.get(priority, Priority.LOW)
+
+    status = input("Select Status: (1. BACKLOG, 2. TODO, 3. DOING, 4. DONE, 5. ARCHIVED): ")
+    selected_status = {
+        '1': Status.BACKLOG,
+        '2': Status.TODO,
+        '3': Status.DOING,
+        '4': Status.DONE,
+        '5': Status.ARCHIVED
+    }.get(status, Status.BACKLOG)
+
+    comments = input("Enter comments for the task: ").strip()
+
+    new_task = task_manager.create_task(project_id, title, description, end_datetime, selected_members, selected_priority, selected_status, comments)
+    print("Task created successfully!")
 
 
 def tasks_menu(username):
