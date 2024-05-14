@@ -39,8 +39,9 @@ class Task:
         self.comments.append(comment)
 
 class TaskManager:
-    def __init__(self, tasks_file="Account/tasks.json"):
+    def __init__(self, tasks_file="Account/tasks.json", history_file="Account/history.json"):
         self.tasks_file = tasks_file
+        self.history_file = history_file
         self.tasks = self.load_tasks()
 
     def save_tasks(self):
@@ -54,7 +55,28 @@ class TaskManager:
         except FileNotFoundError:
             return []
 
-    def create_task(self, project_id, title, description, deadline, assignees, priority=Priority.LOW, status=Status.BACKLOG, comments=None):
+    def save_history(self, project_id, change_title, title, changer, timestamp):
+        try:
+            with open(self.history_file, "r") as file:
+                history = json.load(file)
+        except FileNotFoundError:
+            history = []
+            with open(self.history_file, "w") as file:
+                json.dump(history, file)
+                
+        change = {
+            "project_id" : project_id,
+            "change_title": change_title,
+            "title": title,
+            "changer": changer,
+            "timestamp": timestamp.isoformat()
+        }
+        history.append(change)
+
+        with open(self.history_file, "w") as file:
+            json.dump(history, file, indent=4)
+
+    def create_task(self, username, project_id, title, description, deadline, assignees, priority=Priority.LOW, status=Status.BACKLOG, comments=None):
         task_id = str(uuid.uuid4())
         task = {
             "task_id": task_id,
@@ -65,11 +87,12 @@ class TaskManager:
             "assignees": assignees,
             "priority": priority.value,
             "status": status.value,
-            "comments": comments if comments else [],
+            "comments": [{"username": username, "comment": comments}] if comments else [],
             "created_at": datetime.datetime.now().isoformat()
         }
         self.tasks.append(task)
         self.save_tasks()
+        self.save_history(project_id, "Task Created", title, username, datetime.datetime.now())
         return task
 
 
@@ -611,11 +634,12 @@ def create_task(username, selected_project):
 
     comments = input("Enter comments for the task: ").strip()
 
-    new_task = task_manager.create_task(project_id, title, description, end_datetime, selected_members,
+    new_task = task_manager.create_task(username, project_id, title, description, end_datetime, selected_members,
                                          selected_priority, selected_status, comments)
     print("Task created successfully!")
     input("Press Enter to continue...")
     clear_screen()
+
     
 
 
