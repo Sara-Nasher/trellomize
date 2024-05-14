@@ -95,21 +95,6 @@ class ProjectManager:
         projects[project_id] = {"title": title, "project_id": project_id, "owner": owner}
         self.save_projects(projects)
         return Project(project_id, title, owner)
-        
-    
-    def delete_project(self, project_id, owner):
-        projects = self.load_projects()
-        if project_id in projects:
-            if projects[project_id]["owner"] == owner:
-                del projects[project_id]
-                self.save_projects(projects)
-                return True
-            else:
-                print("[bold red]You are not the owner of this project![/bold red]")
-                return False
-        else:
-            print("[bold red]Project not found![/bold red]")
-            return False
 
     def add_member_to_project(self, project_id, member, username):
         projects = self.load_projects()
@@ -253,9 +238,6 @@ def is_valid_password(email, username):
         password = input()
 
     return (password, email, username)
-
-
-
 
 
 def create_account():
@@ -457,23 +439,6 @@ def account(username):
             selected_project = show_project(username)
             if selected_project:
                 edit_project_menu(username, selected_project)
-
-        elif choice == '3':
-            project_id = input("Enter project ID to delete: ")
-            confirm = input("Are you sure you want to delete this project? (y/n): ")
-            if confirm.lower() == 'y':
-                if project_manager.delete_project(project_id, username):
-                    print("Project deleted successfully!")
-                    input("Press Enter to continue...")
-                    clear_screen()
-                else:
-                    print("[bold red]Failed to delete project![/bold red]")
-                    input("Press Enter to continue...")
-                    clear_screen()
-            else:
-                print("Deletion canceled.")
-                input("Press Enter to continue...")
-                clear_screen()
 
         elif choice == '5':
             break
