@@ -171,7 +171,6 @@ class ProjectManager:
             input("Press Enter to continue...")
             clear_screen()
             return False
-        
 
 
         
@@ -378,7 +377,6 @@ def print_account(email, username, password, console):
         console.print(password, overflow=overflow_p, style="blink bold cyan", justify='center')
         print("\n")
 
-
 def show_project(username):
     projects = ProjectManager().load_projects()
     person_projects = [proj for proj in projects.values() if proj["owner"] == username or (proj.get("members") and username in proj["members"])]
@@ -476,7 +474,6 @@ def account(username):
                 print("Deletion canceled.")
                 input("Press Enter to continue...")
                 clear_screen()
-
 
         elif choice == '5':
             break
