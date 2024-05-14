@@ -95,6 +95,102 @@ class ProjectManager:
         projects[project_id] = {"title": title, "project_id": project_id, "owner": owner}
         self.save_projects(projects)
         return Project(project_id, title, owner)
+        
+    
+    def delete_project(self, project_id, owner):
+        projects = self.load_projects()
+        if project_id in projects:
+            if projects[project_id]["owner"] == owner:
+                del projects[project_id]
+                self.save_projects(projects)
+                return True
+            else:
+                print("[bold red]You are not the owner of this project![/bold red]")
+                return False
+        else:
+            print("[bold red]Project not found![/bold red]")
+            return False
+
+    def add_member_to_project(self, project_id, member, username):
+        projects = self.load_projects()
+        users = UserManager().load_users()
+        
+        if project_id in projects:
+            project = projects[project_id]
+            if project["owner"] == username:
+                if member in users:
+                    project["members"] = project.get("members", [])
+                    if member not in project["members"]:
+                        project["members"].append(member)
+                        print(f"Member '{member}' added to project '{project['title']}' successfully.")
+                        input("Press Enter to continue...")
+                        clear_screen()
+                        
+                    else:
+                        print(f"Member '{member}' is already a member of project '{project['title']}'.")
+                        input("Press Enter to continue...")
+                        clear_screen()
+                    self.save_projects(projects)
+                else:
+                    print("[bold red]User not found![/bold red]")
+                    input("Press Enter to continue...")
+                    clear_screen()
+            else:
+                print("[bold red]You are not the owner of this project![/bold red]")
+                input("Press Enter to continue...")
+                clear_screen()
+        else:
+            print(f"Project with ID '{project_id}' not found.")
+            input("Press Enter to continue...")
+            clear_screen()
+
+    def remove_member_from_project(self, project_id, member, username):
+        projects = self.load_projects()
+        if project_id in projects:
+            project = projects[project_id]
+            if project["owner"] == username:
+                if "members" in project and member in project["members"]:
+                    project["members"].remove(member)
+                    print(f"Member '{member}' removed from project '{project['title']}' successfully.")
+                    input("Press Enter to continue...")
+                    clear_screen()
+                    self.save_projects(projects)
+                    return True
+                else:
+                    print(f"Member '{member}' is not a member of project '{project['title']}'")
+                    input("Press Enter to continue...")
+                    clear_screen()
+                    return False
+            else:
+                print("[bold red]You are not the owner of this project![/bold red]")
+                input("Press Enter to continue...")
+                clear_screen()
+                return False
+        else:
+            print(f"Project with ID '{project_id}' not found.")
+            input("Press Enter to continue...")
+            clear_screen()
+            return False
+        
+    def view_projects(self, username):
+        projects = self.load_projects()
+
+        # Create a table with three columns: Project Title, Owner, and Role
+        table = Table(title="Your Projects", show_header=True, header_style="bold magenta")
+        table.add_column("Project Title", justify="center", style="cyan")
+        table.add_column("Owner", justify="center", style="cyan")
+        table.add_column("Role", justify="center", style="cyan")
+
+        for proj_id, proj in projects.items():
+            # Check if the user is the owner of the project
+            if proj["owner"] == username:
+                table.add_row(proj["title"], "You", "Owner")
+            # Check if the user is a member of the project
+            elif "members" in proj and username in proj["members"]:
+                table.add_row(proj["title"], proj["owner"], "Member")
+
+        console = Console()
+        console.print(table)
 
 
         
@@ -177,6 +273,9 @@ def is_valid_password(email, username):
         password = input()
 
     return (password, email, username)
+
+
+
 
 
 def create_account():
@@ -298,6 +397,44 @@ def print_account(email, username, password, console):
         console.print(password, overflow=overflow_p, style="blink bold cyan", justify='center')
         print("\n")
 
+        
+def select_project(username):
+    projects = ProjectManager().load_projects()
+    owner_projects = [proj for proj in projects.values() if proj["owner"] == username]
+    
+    if not owner_projects:
+        print("You are not associated with any projects.")
+        input("Press Enter to continue...")
+        clear_screen()
+        return None
+    
+    print("Select a Project:")
+    for index, project in enumerate(owner_projects, 1):
+        print(f"{index}. {project['title']}")
+    
+    while True:
+        project_choice = input("Enter the project number: ")
+        if re.match("^\d+$", project_choice):
+            project_choice = int(project_choice) - 1
+            if 0 <= project_choice < len(owner_projects):
+                break
+            else:
+                print("Invalid project choice")
+                input("Press Enter to continue...")
+                clear_screen()
+                for index, project in enumerate(owner_projects, 1):
+                    print(f"{index}. {project['title']}")
+        else:
+            print("Please enter a valid project number.")
+            input("Press Enter to continue...")
+            clear_screen()
+            for index, project in enumerate(owner_projects, 1):
+                print(f"{index}. {project['title']}")
+
+
+    selected_project = owner_projects[project_choice]
+    return selected_project
+
 def show_project(username):
     projects = ProjectManager().load_projects()
     person_projects = [proj for proj in projects.values() if proj["owner"] == username or (proj.get("members") and username in proj["members"])]
@@ -335,6 +472,29 @@ def show_project(username):
     selected_project = person_projects[project_choice]
     return selected_project
 
+def edit_project_menu(username, selected_project):
+    project_manager = ProjectManager()
+    while True:
+        clear_screen()
+        print("1. Add Member to Project")
+        print("2. Remove Member from Project")
+        print("3. Manage Tasks")
+        print("4. Exit")
+        choice = input("Choose an option: ")
+        if choice == '1':
+            member = input("Enter the username of the member you want to add: ")
+            project_manager.add_member_to_project(selected_project['project_id'], member, username)
+        elif choice == '2':
+            member = input("Enter the username of the member you want to remove: ")
+            project_manager.remove_member_from_project(selected_project['project_id'], member, username)
+        elif choice == '3':
+            print("Manage Tasks option selected.")
+        elif choice == '4':
+            break
+        else:
+            print("Invalid choice. Please try again.")
+            input("Press Enter to continue...")
+
 def account(username):
     project_manager = ProjectManager()
 
@@ -351,6 +511,32 @@ def account(username):
             title = input("Enter project title: ")
             project_manager.create_project(project_id, title, username)
             
+        elif choice == '2':
+            selected_project = show_project(username)
+            if selected_project:
+                edit_project_menu(username, selected_project)
+
+        elif choice == '3':
+            project_id = input("Enter project ID to delete: ")
+            confirm = input("Are you sure you want to delete this project? (y/n): ")
+            if confirm.lower() == 'y':
+                if project_manager.delete_project(project_id, username):
+                    print("Project deleted successfully!")
+                    input("Press Enter to continue...")
+                    clear_screen()
+                else:
+                    print("[bold red]Failed to delete project![/bold red]")
+                    input("Press Enter to continue...")
+                    clear_screen()
+            else:
+                print("Deletion canceled.")
+                input("Press Enter to continue...")
+                clear_screen()
+
+        elif choice == '4':  
+            project_manager.view_projects(username)
+            input("Press Enter to continue...")
+            clear_screen()
 
         elif choice == '5':
             break
