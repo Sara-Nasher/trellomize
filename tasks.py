@@ -17,7 +17,6 @@ class Priority(Enum):
     MEDIUM = "MEDIUM"
     LOW = "LOW"
 
-# Enum for Task Status
 class Status(Enum):
     BACKLOG = "BACKLOG"
     TODO = "TODO"
@@ -187,15 +186,26 @@ class ProjectManager:
                     if member not in project["members"]:
                         project["members"].append(member)
                         print(f"Member '{member}' added to project '{project['title']}' successfully.")
+                        input("Press Enter to continue...")
+                        clear_screen()
+                        
                     else:
                         print(f"Member '{member}' is already a member of project '{project['title']}'.")
+                        input("Press Enter to continue...")
+                        clear_screen()
                     self.save_projects(projects)
                 else:
                     print("[bold red]User not found![/bold red]")
+                    input("Press Enter to continue...")
+                    clear_screen()
             else:
                 print("[bold red]You are not the owner of this project![/bold red]")
+                input("Press Enter to continue...")
+                clear_screen()
         else:
             print(f"Project with ID '{project_id}' not found.")
+            input("Press Enter to continue...")
+            clear_screen()
 
     def remove_member_from_project(self, project_id, member, username):
         projects = self.load_projects()
@@ -205,34 +215,44 @@ class ProjectManager:
                 if "members" in project and member in project["members"]:
                     project["members"].remove(member)
                     print(f"Member '{member}' removed from project '{project['title']}' successfully.")
+                    input("Press Enter to continue...")
+                    clear_screen()
                     self.save_projects(projects)
                     return True
                 else:
                     print(f"Member '{member}' is not a member of project '{project['title']}'")
+                    input("Press Enter to continue...")
+                    clear_screen()
                     return False
             else:
                 print("[bold red]You are not the owner of this project![/bold red]")
+                input("Press Enter to continue...")
+                clear_screen()
                 return False
         else:
             print(f"Project with ID '{project_id}' not found.")
+            input("Press Enter to continue...")
+            clear_screen()
             return False
         
     def view_projects(self, username):
         projects = self.load_projects()
 
-        # Create a table with three columns: Project Title, Owner, and Role
+        # Create a table with four columns: Project Title, Owner, Role, and Members
         table = Table(title="Your Projects", show_header=True, header_style="bold magenta")
         table.add_column("Project Title", justify="center", style="cyan")
         table.add_column("Owner", justify="center", style="cyan")
         table.add_column("Role", justify="center", style="cyan")
+        table.add_column("Members", justify="center", style="cyan")  # New column for members
 
         for proj_id, proj in projects.items():
+            members = ', '.join(proj.get("members", []))  # Joining members with comma separator
             # Check if the user is the owner of the project
             if proj["owner"] == username:
-                table.add_row(proj["title"], "You", "Owner")
+                table.add_row(proj["title"], "You", "Owner", members)
             # Check if the user is a member of the project
             elif "members" in proj and username in proj["members"]:
-                table.add_row(proj["title"], proj["owner"], "Member")
+                table.add_row(proj["title"], proj["owner"], "Member", members)
 
         console = Console()
         console.print(table)
@@ -518,30 +538,60 @@ def show_project(username):
     return selected_project
 
 
-def create_task(username):
-    project_manager = ProjectManager()
-    task_manager = TaskManager()
-    project = select_project(username)
-    if not project:
+def get_valid_datetime(prompt):
+    while True:
+        datetime_input = input(prompt)
+        if not datetime_input:
+            return None  # Return None if the input is empty
+        try:
+            datetime_obj = datetime.datetime.strptime(datetime_input, "%Y-%m-%d %H:%M")
+            if datetime_obj < datetime.datetime.now():
+                print("Invalid date and time. It should be in the future.")
+                continue
+            return datetime_obj
+        except ValueError:
+            print("Invalid date format. Please enter the date and time in the format YYYY-MM-DD HH:MM.")
+
+
+def create_task(username, selected_project):
+    if selected_project['owner'] != username:
+        print("You do not have permission to create tasks for this project.")
         return
 
-    project_id = project["project_id"]
+    task_manager = TaskManager()
+    project_id = selected_project["project_id"]
     title = input("Enter the task title: ")
     description = input("Enter the task description: ")
-    
-    end_datetime_input = input("Enter the end date and time (format YYYY-MM-DD HH:MM), leave empty for default: ")
-    end_datetime = datetime.datetime.now() + datetime.timedelta(days=1)  # Default 24 hours from now
-    if end_datetime_input:
-        end_datetime = datetime.datetime.strptime(end_datetime_input, "%Y-%m-%d %H:%M")
 
-    members = project.get("members", [])
+    start_datetime = datetime.datetime.now()  
+    end_datetime = get_valid_datetime("Enter the task deadline (YYYY-MM-DD HH:MM): ")
+    if not end_datetime:
+        end_datetime = start_datetime + datetime.timedelta(days=1)  
+    elif end_datetime < start_datetime:
+        print("Invalid deadline. It should be after the start time.")
+        return
+    
+    members = selected_project.get("members", [])
     print("Select Members:")
     for index, member in enumerate(members, 1):
         print(f"{index}. {member}")
 
     member_choices = input("Enter the member numbers (comma-separated): ")
-    selected_members = [members[int(choice)-1] for choice in member_choices.split(',') if 0 < int(choice) <= len(members)]
-    
+    selected_members = []
+    if member_choices:
+        for choice in member_choices.split(','):
+            if choice.isdigit() and 0 < int(choice) <= len(members):
+                selected_members.append(members[int(choice) - 1])
+            else:
+                print("Invalid member choice. Task cannot be assigned without any members.")
+                continue
+    else:
+        print("No members selected for the task. You can add members later.")
+        proceed = input("Do you want to proceed without assigning any members? (y/n): ")
+        if proceed.lower() != 'y':
+            print("Task creation cancelled.")
+            return
+
     priority = input("Select Priority: (1. CRITICAL, 2. HIGH, 3. MEDIUM, 4. LOW): ")
     selected_priority = {
         '1': Priority.CRITICAL,
@@ -561,134 +611,18 @@ def create_task(username):
 
     comments = input("Enter comments for the task: ").strip()
 
-    new_task = task_manager.create_task(project_id, title, description, end_datetime, selected_members, selected_priority, selected_status, comments)
+    new_task = task_manager.create_task(project_id, title, description, end_datetime, selected_members,
+                                         selected_priority, selected_status, comments)
     print("Task created successfully!")
+    input("Press Enter to continue...")
+    clear_screen()
+    
 
-def edit_task_menu(task):
+
+def tasks_menu(username, selected_project):
+    project_manager = ProjectManager()
     while True:
-        print("Edit Task Menu:")
-        print("1. Change Title")
-        print("2. Change Description")
-        print("3. Change Assignees")
-        print("4. Change Deadline")
-        print("5. Change Priority")
-        print("6. Change Status")
-        print("7. Comments")
-        print("8. Exit")
-
-        choice = input("Choose an option: ")
         clear_screen()
-
-        if choice == '1':
-            new_title = input("Enter the new title: ")
-            task.title = new_title
-            print("Title changed successfully!")
-        elif choice == '2':
-            new_description = input("Enter the new description: ")
-            task.description = new_description
-            print("Description changed successfully!")
-        elif choice == '3':
-            pass
-        elif choice == '4':
-            new_deadline_input = input("Enter the new end date and time (format YYYY-MM-DD HH:MM): ")
-            new_deadline = datetime.datetime.strptime(new_deadline_input, "%Y-%m-%d %H:%M")
-            task.deadline = new_deadline
-            print("Deadline changed successfully!")
-        elif choice == '5':
-            print("Select Priority: ")
-            for index, priority in enumerate(Priority, 1):
-                print(f"{index}. {priority.value}")
-            priority_choice = int(input("Enter the priority number: ")) - 1
-            selected_priority = list(Priority)[priority_choice] if 0 <= priority_choice < len(Priority) else None
-            if selected_priority:
-                task.priority = selected_priority
-                print("Priority changed successfully!")
-            else:
-                print("Invalid priority choice!")
-        elif choice == '6':
-            print("Select Status: ")
-            for index, status in enumerate(Status, 1):
-                print(f"{index}. {status.value}")
-            status_choice = int(input("Enter the status number: ")) - 1
-            selected_status = list(Status)[status_choice] if 0 <= status_choice < len(Status) else None
-            if selected_status:
-                task.status = selected_status
-                print("Status changed successfully!")
-            else:
-                print("Invalid status choice!")
-        elif choice == '7':
-            print("Comments:")
-            for index, comment in enumerate(task.comments, 1):
-                print(f"{index}. {comment}")
-            comment_choice = input("Choose an option (1. Add Comment, 2. Delete Comment, 3. Exit): ")
-            if comment_choice == '1':
-                new_comment = input("Enter the new comment: ")
-                task.add_comment(new_comment)
-                print("Comment added successfully!")
-            elif comment_choice == '2':
-                comment_index = int(input("Enter the comment number to delete: ")) - 1
-                if 0 <= comment_index < len(task.comments):
-                    deleted_comment = task.comments.pop(comment_index)
-                    print(f"Comment '{deleted_comment}' deleted successfully!")
-                else:
-                    print("Invalid comment number!")
-            elif comment_choice == '3':
-                pass  
-            else:
-                print("Invalid choice!")
-
-        elif choice == '8':
-            break
-        else:
-            print("Invalid choice. Please try again.")
-
-
-def edit_tasks(username):
-    project_manager = ProjectManager()
-    task_manager = TaskManager()
-
-    project = show_project(username)
-    if not project:
-        return
-
-    project_id = project["project_id"]
-
-    tasks = [task for task in task_manager.tasks if task["project_id"] == project_id]
-
-    if not tasks:
-        print("No tasks found for this project.")
-        return
-
-    print("Select a Task:")
-    for index, task in enumerate(tasks, 1):
-        print(f"{index}. {task['title']}")
-
-    while True:
-        task_choice = input("Enter the project number: ")
-        if re.match("^\d+$",  task_choice):
-            task_choice = int( task_choice) - 1
-            if 0 <=  task_choice < len(tasks):
-                break
-            else:
-                print("Invalid project choice")
-                input("Press Enter to continue...")
-                clear_screen()
-                for index, task in enumerate(tasks, 1):
-                    print(f"{index}. {task['title']}")
-        else:
-            print("Please enter a valid project number.")
-            input("Press Enter to continue...")
-            clear_screen()
-            for index, task in enumerate(tasks, 1):
-                print(f"{index}. {task['title']}")
-
-    selected_task = tasks[task_choice]
-    selected_task_obj = Task(selected_task['title'], selected_task['description'], selected_task['deadline'], selected_task['assignees'], Priority(selected_task['priority']), Status(selected_task['status']), selected_task['comments'])
-    edit_task_menu(selected_task_obj)
-
-def tasks_menu(username):
-    project_manager = ProjectManager()
-    while True:
         print("Tasks Menu:")
         print("1. Create Task")
         print("2. Edit Task")
@@ -699,9 +633,9 @@ def tasks_menu(username):
         clear_screen()
 
         if choice == '1':
-            create_task(username)
+            create_task(username, selected_project)
         elif choice == '2':
-            edit_tasks(username)
+            pass
         elif choice == '3':
             pass
         elif choice == '4':
@@ -709,18 +643,38 @@ def tasks_menu(username):
         else:
             print("Invalid choice. Please try again.")
             
+def edit_project_menu(username, selected_project):
+    project_manager = ProjectManager()
+    while True:
+        clear_screen()
+        print("1. Add Member to Project")
+        print("2. Remove Member from Project")
+        print("3. Manage Tasks")
+        print("4. Exit")
+        choice = input("Choose an option: ")
+        if choice == '1':
+            member = input("Enter the username of the member you want to add: ")
+            project_manager.add_member_to_project(selected_project['project_id'], member, username)
+        elif choice == '2':
+            member = input("Enter the username of the member you want to remove: ")
+            project_manager.remove_member_from_project(selected_project['project_id'], member, username)
+        elif choice == '3':
+            tasks_menu(username, selected_project)
+        elif choice == '4':
+            break
+        else:
+            print("Invalid choice. Please try again.")
+            input("Press Enter to continue...")
 
 def account(username):
     project_manager = ProjectManager()
 
     while True:
         print("1. Create Project")
-        print("2. Delete Project")
-        print("3. Add Member to Project")
-        print("4. Remove Member from Project")
-        print("5. View Projects")
-        print("6. Tasks")
-        print("7. Logout")
+        print("2. Edit Project")
+        print("3. Delete Project")
+        print("4. View Projects")
+        print("5. Logout")
         choice = input("Choose an option: ")
         clear_screen()
         if choice == '1':
@@ -728,8 +682,12 @@ def account(username):
             title = input("Enter project title: ")
             project_manager.create_project(project_id, title, username)
             
-
         elif choice == '2':
+            selected_project = show_project(username)
+            if selected_project:
+                edit_project_menu(username, selected_project)
+
+        elif choice == '3':
             project_id = input("Enter project ID to delete: ")
             confirm = input("Are you sure you want to delete this project? (y/n): ")
             if confirm.lower() == 'y':
@@ -745,26 +703,13 @@ def account(username):
                 print("Deletion canceled.")
                 input("Press Enter to continue...")
                 clear_screen()
-        elif choice == '3':
-            project_id = input("Enter project ID: ")
-            member = input("Enter the username of the member you want to add: ")
-            project_manager.add_member_to_project(project_id, member, username)
-        
-        elif choice == '4':
-            project_id = input("Enter project ID: ")
-            member = input("Enter the username or email of the member you want to remove: ")
-            project_manager.remove_member_from_project(project_id, member, username)
 
-        elif choice == '5':  
+        elif choice == '4':  
             project_manager.view_projects(username)
             input("Press Enter to continue...")
             clear_screen()
 
-        elif choice == '6':
-            tasks_menu(username)
-
-
-        elif choice == '7':
+        elif choice == '5':
             break
         else:
             print("Invalid choice. Please try again.")
