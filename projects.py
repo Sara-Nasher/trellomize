@@ -175,22 +175,25 @@ class ProjectManager:
     def view_projects(self, username):
         projects = self.load_projects()
 
-        # Create a table with three columns: Project Title, Owner, and Role
+        # Create a table with four columns: Project Title, Owner, Role, and Members
         table = Table(title="Your Projects", show_header=True, header_style="bold magenta")
         table.add_column("Project Title", justify="center", style="cyan")
         table.add_column("Owner", justify="center", style="cyan")
         table.add_column("Role", justify="center", style="cyan")
+        table.add_column("Members", justify="center", style="cyan")  # New column for members
 
         for proj_id, proj in projects.items():
+            members = ', '.join(proj.get("members", []))  # Joining members with comma separator
             # Check if the user is the owner of the project
             if proj["owner"] == username:
-                table.add_row(proj["title"], "You", "Owner")
+                table.add_row(proj["title"], "You", "Owner", members)
             # Check if the user is a member of the project
             elif "members" in proj and username in proj["members"]:
-                table.add_row(proj["title"], proj["owner"], "Member")
+                table.add_row(proj["title"], proj["owner"], "Member", members)
 
         console = Console()
         console.print(table)
+
 
 
         
@@ -396,44 +399,6 @@ def print_account(email, username, password, console):
         print("\n")
         console.print(password, overflow=overflow_p, style="blink bold cyan", justify='center')
         print("\n")
-
-        
-def select_project(username):
-    projects = ProjectManager().load_projects()
-    owner_projects = [proj for proj in projects.values() if proj["owner"] == username]
-    
-    if not owner_projects:
-        print("You are not associated with any projects.")
-        input("Press Enter to continue...")
-        clear_screen()
-        return None
-    
-    print("Select a Project:")
-    for index, project in enumerate(owner_projects, 1):
-        print(f"{index}. {project['title']}")
-    
-    while True:
-        project_choice = input("Enter the project number: ")
-        if re.match("^\d+$", project_choice):
-            project_choice = int(project_choice) - 1
-            if 0 <= project_choice < len(owner_projects):
-                break
-            else:
-                print("Invalid project choice")
-                input("Press Enter to continue...")
-                clear_screen()
-                for index, project in enumerate(owner_projects, 1):
-                    print(f"{index}. {project['title']}")
-        else:
-            print("Please enter a valid project number.")
-            input("Press Enter to continue...")
-            clear_screen()
-            for index, project in enumerate(owner_projects, 1):
-                print(f"{index}. {project['title']}")
-
-
-    selected_project = owner_projects[project_choice]
-    return selected_project
 
 def show_project(username):
     projects = ProjectManager().load_projects()
