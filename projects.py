@@ -171,6 +171,8 @@ class ProjectManager:
             input("Press Enter to continue...")
             clear_screen()
             return False
+        
+
 
         
 def clear_screen():
@@ -252,6 +254,10 @@ def is_valid_password(email, username):
         password = input()
 
     return (password, email, username)
+
+
+
+
 
 def create_account():
     user_manager = UserManager()
@@ -372,6 +378,7 @@ def print_account(email, username, password, console):
         console.print(password, overflow=overflow_p, style="blink bold cyan", justify='center')
         print("\n")
 
+
 def show_project(username):
     projects = ProjectManager().load_projects()
     person_projects = [proj for proj in projects.values() if proj["owner"] == username or (proj.get("members") and username in proj["members"])]
@@ -408,7 +415,6 @@ def show_project(username):
 
     selected_project = person_projects[project_choice]
     return selected_project
-
             
 def edit_project_menu(username, selected_project):
     project_manager = ProjectManager()
@@ -453,6 +459,24 @@ def account(username):
             selected_project = show_project(username)
             if selected_project:
                 edit_project_menu(username, selected_project)
+
+        elif choice == '3':
+            project_id = input("Enter project ID to delete: ")
+            confirm = input("Are you sure you want to delete this project? (y/n): ")
+            if confirm.lower() == 'y':
+                if project_manager.delete_project(project_id, username):
+                    print("Project deleted successfully!")
+                    input("Press Enter to continue...")
+                    clear_screen()
+                else:
+                    print("[bold red]Failed to delete project![/bold red]")
+                    input("Press Enter to continue...")
+                    clear_screen()
+            else:
+                print("Deletion canceled.")
+                input("Press Enter to continue...")
+                clear_screen()
+
 
         elif choice == '5':
             break
