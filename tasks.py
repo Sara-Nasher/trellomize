@@ -37,6 +37,8 @@ class Task:
 
     def add_comment(self, comment):
         self.comments.append(comment)
+    
+    
 
 class TaskManager:
     def __init__(self, tasks_file="Account/tasks.json", history_file="Account/history.json"):
@@ -44,7 +46,8 @@ class TaskManager:
         self.history_file = history_file
         self.tasks = self.load_tasks()
 
-    def save_tasks(self):
+    def save_tasks(self, tasks):
+        self.tasks = tasks
         with open(self.tasks_file, "w") as file:
             json.dump(self.tasks, file, indent=4)
 
@@ -67,7 +70,7 @@ class TaskManager:
         change = {
             "project_id" : project_id,
             "change_title": change_title,
-            "title": title,
+            "change": title,
             "changer": changer,
             "timestamp": timestamp.isoformat()
         }
@@ -78,7 +81,7 @@ class TaskManager:
 
     def create_task(self, username, project_id, title, description, deadline, assignees, priority=Priority.LOW, status=Status.BACKLOG, comments=None):
         task_id = str(uuid.uuid4())
-        task = {
+        tasks = {
             "task_id": task_id,
             "project_id": project_id,
             "title": title,
@@ -90,12 +93,28 @@ class TaskManager:
             "comments": [{"username": username, "comment": comments}] if comments else [],
             "created_at": datetime.datetime.now().isoformat()
         }
-        self.tasks.append(task)
-        self.save_tasks()
+        self.tasks.append(tasks)
+        self.save_tasks(tasks)
         self.save_history(project_id, "Task Created", title, username, datetime.datetime.now())
-        return task
+        return tasks
 
+    def edit_task(self, task_id, title, description, deadline, assignees, priority, status):
+        for task in self.tasks:
+            if task["task_id"] == task_id:
+                task["title"] = title
+                task["description"] = description
+                task["deadline"] = deadline.isoformat()
+                task["assignees"] = assignees
+                task["priority"] = priority.value
+                task["status"] = status.value
+                break
+        else:
+            print("Task not found.")
+            return
 
+        self.save_tasks()
+
+        
 class User:
     def __init__(self, email, username, password, active=True):
         self.email = email
@@ -640,7 +659,86 @@ def create_task(username, selected_project):
     input("Press Enter to continue...")
     clear_screen()
 
-    
+def edit_task(username, selected_project):
+    task_manager = TaskManager()
+    tasks = task_manager.load_tasks()
+    user_tasks = [task for task in tasks if task["project_id"] == selected_project["project_id"] and (username in selected_project["members"] or selected_project["owner"] == username)]
+
+    if not user_tasks:
+        print("You don't have any tasks in this project.")
+        input("Press Enter to continue...")
+        return
+
+    print("Select a Task:")
+    for index, task in enumerate(user_tasks, 1):
+        print(f"{index}. {task['title']}")
+
+    while True:
+        task_choice = input("Enter the task number: ")
+        if re.match("^\d+$", task_choice):
+            task_choice = int(task_choice) - 1
+            if 0 <= task_choice < len(user_tasks):
+                break
+            else:
+                print("Invalid task choice")
+        else:
+            print("Please enter a valid task number.")
+
+    selected_task = user_tasks[task_choice]
+
+    while True:
+        print("Edit Task Menu:")
+        print("1. Change Title")
+        print("2. Change Description")
+        print("3. Change Assignees")
+        print("4. Change Deadline")
+        print("5. Change Priority")
+        print("6. Change Status")
+        print("7. Comments")
+        print("8. Exit")
+
+        choice = input("Choose an option: ")
+
+        if choice == '1':
+            if username == selected_project["owner"] or username in selected_task["assignees"]:
+                new_title = input("Enter new title (leave blank to remove current title): ")
+                if new_title != "":
+                    selected_task["title"] = new_title
+                    task_manager.save_history(selected_project["project_id"], "Task Title Changed", new_title, username, datetime.datetime.now())
+                    print("Title changed successfully.")
+                    task_manager.save_tasks(tasks)
+                else:
+                    selected_task["title"] = ""
+                    task_manager.save_history(selected_project["project_id"], "Task Title Removed", selected_task["title"], username, datetime.datetime.now())
+                    print("Title removed successfully.")
+                    task_manager.save_tasks(tasks)
+            else:
+                print("You are not allowed to change this section.")
+                input("Press Enter to continue...")
+                return
+            
+        elif choice == '2':
+            pass
+               
+        elif choice == '3':
+            pass
+            
+        elif choice == '4':
+            # implement change deadline logic
+            pass
+        elif choice == '5':
+            # implement change priority logic
+            pass
+        elif choice == '6':
+            # implement change status logic
+            pass
+        elif choice == '7':
+            # implement comments logic
+            pass
+        elif choice == '8':
+            break
+        else:
+            print("Invalid choice. Please try again.")
 
 
 def tasks_menu(username, selected_project):
@@ -659,7 +757,7 @@ def tasks_menu(username, selected_project):
         if choice == '1':
             create_task(username, selected_project)
         elif choice == '2':
-            pass
+            edit_task(username, selected_project)
         elif choice == '3':
             pass
         elif choice == '4':
