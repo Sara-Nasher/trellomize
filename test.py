@@ -549,33 +549,41 @@ def get_valid_datetime(prompt):
         except ValueError:
             print("Invalid date format. Please enter the date and time in the format YYYY-MM-DD HH:MM.")
 
-def create_task(username):
-    project_manager = ProjectManager()
-    task_manager = TaskManager()
-    project = select_project(username)
-    if not project:
+def create_task(username, selected_project):
+    if selected_project['owner'] != username:
+        print("You do not have permission to create tasks for this project.")
         return
 
-    project_id = project["project_id"]
+    task_manager = TaskManager()
+    project_id = selected_project["project_id"]
     title = input("Enter the task title: ")
     description = input("Enter the task description: ")
-    
-    end_datetime = get_valid_datetime()
-    if end_datetime:
-        print(f"End date and time entered: {end_datetime}")
-    else:
+
+    end_datetime = get_valid_datetime("Enter the task deadline (YYYY-MM-DD HH:MM): ")
+    if not end_datetime:
         end_datetime = datetime.datetime.now() + datetime.timedelta(days=1)  # Default 24 hours from now
-        print("Using default end date and time.")
 
-
-    members = project.get("members", [])
+    members = selected_project.get("members", [])
     print("Select Members:")
     for index, member in enumerate(members, 1):
         print(f"{index}. {member}")
 
     member_choices = input("Enter the member numbers (comma-separated): ")
-    selected_members = [members[int(choice)-1] for choice in member_choices.split(',') if 0 < int(choice) <= len(members)]
-    
+    selected_members = []
+    if member_choices:
+        for choice in member_choices.split(','):
+            if choice.isdigit() and 0 < int(choice) <= len(members):
+                selected_members.append(members[int(choice) - 1])
+            else:
+                print("Invalid member choice. Task cannot be assigned without any members.")
+                continue
+    else:
+        print("No members selected for the task. You can add members later.")
+        proceed = input("Do you want to proceed without assigning any members? (yes/no): ")
+        if proceed.lower() != 'yes':
+            print("Task creation cancelled.")
+            return
+
     priority = input("Select Priority: (1. CRITICAL, 2. HIGH, 3. MEDIUM, 4. LOW): ")
     selected_priority = {
         '1': Priority.CRITICAL,
@@ -595,8 +603,10 @@ def create_task(username):
 
     comments = input("Enter comments for the task: ").strip()
 
-    new_task = task_manager.create_task(project_id, title, description, end_datetime, selected_members, selected_priority, selected_status, comments)
+    new_task = task_manager.create_task(project_id, title, description, end_datetime, selected_members,
+                                         selected_priority, selected_status, comments)
     print("Task created successfully!")
+
 
     
 def edit_task_menu(task):
