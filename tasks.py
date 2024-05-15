@@ -718,7 +718,22 @@ def edit_task(username, selected_project):
                 return
             
         elif choice == '2':
-            pass
+            if username == selected_project["owner"] or username in selected_task["assignees"]:
+                new_description = input("Enter new description (leave blank to remove current description): ")
+                if new_description != "":
+                    selected_task["description"] = new_description
+                    task_manager.save_history(selected_project["project_id"], "Task Description Changed", new_description, username, datetime.datetime.now())
+                    print("Description changed successfully.")
+                    task_manager.save_tasks(tasks)
+                else:
+                    selected_task["description"] = ""
+                    task_manager.save_history(selected_project["project_id"], "Task Description Removed", selected_task["description"], username, datetime.datetime.now())
+                    print("Description removed successfully.")
+                    task_manager.save_tasks(tasks)
+            else:
+                print("You are not allowed to change this section.")
+                input("Press Enter to continue...")
+                return
                
         elif choice == '3':
             pass
