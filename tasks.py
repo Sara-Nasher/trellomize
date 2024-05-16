@@ -215,15 +215,25 @@ class ProjectManager:
                     if member not in project["members"]:
                         project["members"].append(member)
                         print(f"Member '{member}' added to project '{project['title']}' successfully.")
+                        input("Press Enter to continue...")
+                        clear_screen()
                         self.save_projects(projects)
                     else:
                         print(f"Member '{member}' is already a member of project '{project['title']}'.")
+                        input("Press Enter to continue...")
+                        clear_screen()
                 else:
                     print("[bold red]User not found![/bold red]")
+                    input("Press Enter to continue...")
+                    clear_screen()
             else:
                 print("[bold red]You are not the owner of this project![/bold red]")
+                input("Press Enter to continue...")
+                clear_screen()
         else:
             print(f"Project with ID '{project_id}' not found.")
+            input("Press Enter to continue...")
+            clear_screen()
 
     def remove_member_from_project(self, project_id, member, username):
         projects = self.load_projects()
@@ -233,13 +243,21 @@ class ProjectManager:
                 if "members" in project and member in project["members"]:
                     project["members"].remove(member)
                     print(f"Member '{member}' removed from project '{project['title']}' successfully.")
+                    input("Press Enter to continue...")
+                    clear_screen()
                     self.save_projects(projects)
                 else:
                     print(f"Member '{member}' is not a member of project '{project['title']}'")
+                    input("Press Enter to continue...")
+                    clear_screen()
             else:
                 print("[bold red]You are not the owner of this project![/bold red]")
+                input("Press Enter to continue...")
+                clear_screen()
         else:
             print(f"Project with ID '{project_id}' not found.")
+            input("Press Enter to continue...")
+            clear_screen()
 
 
     def view_projects(self, username):
@@ -801,7 +819,25 @@ def edit_task(username, selected_project):
                 return
 
         elif choice == '4':
-            pass  # Add logic for changing deadline
+            if username == selected_project["owner"] or username in selected_task["assignees"]:
+                new_deadline = get_valid_datetime("Enter new deadline (YYYY-MM-DD HH:MM) or leave blank: ")
+                if new_deadline is not None:
+                    selected_task["deadline"] = new_deadline.strftime("%Y-%m-%d %H:%M")
+                    task_manager.save_history(selected_project["project_id"], "Deadline Changed",
+                                      selected_task["deadline"], username, datetime.datetime.now())
+                    print("Deadline changed successfully.")
+                    task_manager.save_tasks(tasks)
+                    input("Press Enter to continue...")
+                    clear_screen()
+                else:
+                    print("Deadline remains unchanged.")
+                    input("Press Enter to continue...")
+                    clear_screen()
+            else:
+                print("You are not allowed to change this section.")
+                input("Press Enter to continue...")
+                clear_screen()
+                return
         elif choice == '5':
             pass  # Add logic for changing priority
         elif choice == '6':
