@@ -618,7 +618,7 @@ def create_task(username, selected_project):
             print("Task creation cancelled.")
             return
 
-        print("Select Priority:")
+    print("Select Priority:")
     print("1. CRITICAL")
     print("2. HIGH")
     print("3. MEDIUM")
@@ -643,14 +643,33 @@ def create_task(username, selected_project):
 
     print(f"Selected priority: {selected_priority}")
 
-    status = input("Select Status: (1. BACKLOG, 2. TODO, 3. DOING, 4. DONE, 5. ARCHIVED): ")
-    selected_status = {
-        '1': Status.BACKLOG,
-        '2': Status.TODO,
-        '3': Status.DOING,
-        '4': Status.DONE,
-        '5': Status.ARCHIVED
-    }.get(status, Status.BACKLOG)
+
+    print("Select Status:")
+    print("1. BACKLOG")
+    print("2. TODO")
+    print("3. DOING")
+    print("4. DONE")
+    print("5. ARCHIVED")
+
+    selected_status = None
+    while not selected_status:
+        status = input("Choose Status (1-5): ")
+        if status.isdigit() and 1 <= int(status) <= 4:
+            selected_status = {
+                '1': Status.BACKLOG,
+                '2': Status.TODO,
+                '3': Status.DOING,
+                '4': Status.DONE, 
+                '4': Status.ARCHIVED
+            }.get(status, Status.BACKLOG)
+        elif not status:
+            selected_status = Status.BACKLOG
+        else:
+            print("Invalid input. Please choose a status between 1 and 5.")
+    if selected_status is None:
+        selected_status = Status.CRITICAL
+
+    print(f"Selected status: {selected_status}")
 
     comments = input("Enter comments for the task: ").strip()
 
@@ -889,10 +908,114 @@ def edit_task(username, selected_project):
             input("Press Enter to continue...")
             clear_screen()
 
+
         elif choice == '6':
-            pass  # Add logic for changing status
+            if username == selected_project["owner"] or username in selected_task["assignees"]:
+                print("Select Status:")
+                print("1. BACKLOG")
+                print("2. TODO")
+                print("3. DOING")
+                print("4. DONE")
+                print("4. ARCHIVED")
+
+                new_status_choice = input("Choose status (1-5) or press Enter to keep current status: ")
+        
+                if new_status_choice.isdigit() and 1 <= int(new_status_choice) <= 5:
+                    new_status = {
+                        '1': Status.BACKLOG,
+                        '2': Status.TODO,
+                        '3': Status.DOING,
+                        '4': Status.DONE,
+                        '5': Status.ARCHIVED
+                    }[new_status_choice]
+                    selected_task["status"] = new_status.value
+                    task_manager.save_history(selected_project["project_id"], "Status Changed",
+                              new_status.name, username, datetime.datetime.now())
+                    print("Status changed successfully.")
+                    task_manager.save_tasks(tasks)
+                elif new_status_choice == "":
+                    print("Keeping current status.")
+                else:
+                    print("Invalid status choice. Please choose a number between 1 and 5.")
+
+            else:
+                print("You are not allowed to change this section.")
+        
+            input("Press Enter to continue...")
+            clear_screen()
+
         elif choice == '7':
-            pass  # Add logic for comments
+            while True:
+                print("Comment Menu:")
+                print("1. Add Comment")
+                print("2. Remove Comment")
+                print("3. Exit")
+
+                comment_choice = input("Choose an option: ")
+
+                if comment_choice not in ['1', '2', '3']:
+                    print("Invalid option. Please choose a valid option.")
+                    continue
+
+                if comment_choice == '1':
+                    try:
+                        comment_text = input("Enter your comment: ")
+                        if not comment_text:
+                            print("Comment cannot be empty.")
+                            continue
+                        selected_task["comments"].append({"username": username, "comment": comment_text})
+                        task_manager.save_tasks(tasks)
+                        task_manager.save_history(selected_project["project_id"], "Comment Added", comment_text, username, datetime.datetime.now())
+                        print("Comment added successfully.")
+                        input("Press Enter to continue...")
+                        clear_screen()
+                    except Exception as e:
+                        print(f"Error adding comment: {e}")
+
+                elif comment_choice == '2':
+                    if not selected_task["comments"]:
+                        print("No comments to remove.")
+                        input("Press Enter to continue...")
+                        continue
+
+                    print("Select a comment to remove:")
+                    for index, comment in enumerate(selected_task["comments"], 1):
+                        print(f"{index}. {comment['username']}: {comment['comment']}")
+
+                    while True:
+                        remove_choice = input("Enter the comment number to remove (or press Enter to cancel): ")
+                        if remove_choice == "":
+                            break
+                        elif re.match("^\d+$", remove_choice):
+                            remove_choice = int(remove_choice) - 1
+                            if 0 <= remove_choice < len(selected_task["comments"]):
+                                comment_to_remove = selected_task["comments"][remove_choice]
+                                if comment_to_remove["username"] == username or username == selected_project["owner"]:
+                                    try:
+                                        # Remove the comment and save the changes
+                                        selected_task["comments"].remove(comment_to_remove)
+                                        task_manager.save_tasks(tasks)
+                                        task_manager.save_history(
+                                            selected_project["project_id"], 
+                                            "Comment Removed", 
+                                            comment_to_remove["comment"], 
+                                            username, 
+                                            datetime.datetime.now()
+                                        )
+                                        print("Comment removed successfully.")
+                                        input("Press Enter to continue...")
+                                        clear_screen()
+                                        break  # Return to the main comment menu
+                                    except Exception as e:
+                                        print(f"Error removing comment: {e}")
+                                else:
+                                    print("You do not have permission to remove this comment.")
+                            else:
+                                print("Invalid comment number.")
+                        else:
+                            print("Invalid input. Please enter a valid comment number.")
+                elif comment_choice == '3':
+                    break
         elif choice == '8':
             break
         else:
