@@ -9,6 +9,8 @@ import datetime
 from enum import Enum
 import uuid
 import re
+import hashlib
+from rich.box import SIMPLE
 
 
 class Priority(Enum):
@@ -27,8 +29,9 @@ class Status(Enum):
 
 
 class Task:
-    def __init__(self, title, description, deadline, assignees, priority=Priority.LOW, status=Status.BACKLOG,
+    def __init__(self, label, title, description, deadline, assignees, priority=Priority.LOW, status=Status.BACKLOG,
                  comments=None):
+        self.label = label
         self.title = title
         self.description = description
         self.deadline = deadline
@@ -58,7 +61,7 @@ class TaskManager:
         except FileNotFoundError:
             return {}
 
-    def save_history(self, project_id, change_title, title, changer, timestamp):
+    def save_history(self, project_id, action, field_name, new_value, changer, timestamp):
         try:
             with open(self.history_file, "r") as file:
                 history = json.load(file)
@@ -69,8 +72,9 @@ class TaskManager:
 
         change = {
             "project_id": project_id,
-            "change_title": change_title,
-            "change": title,
+            "action": action,
+            "field_name": field_name,
+            "new_value": new_value,
             "changer": changer,
             "timestamp": timestamp.isoformat()
         }
@@ -79,12 +83,13 @@ class TaskManager:
         with open(self.history_file, "w") as file:
             json.dump(history, file, indent=4)
 
-    def create_task(self, username, project_id, title, description, deadline, assignees, priority=Priority.LOW,
+    def create_task(self, username, project_id, label, title, description, deadline, assignees, priority=Priority.LOW,
                     status=Status.BACKLOG, comments=None):
         task_id = str(uuid.uuid4())
         task = {
             "task_id": task_id,
             "project_id": project_id,
+            "label": label,
             "title": title,
             "description": description,
             "deadline": deadline.isoformat(),
@@ -96,7 +101,7 @@ class TaskManager:
         }
         self.tasks[task_id] = task
         self.save_tasks(self.tasks)
-        self.save_history(project_id, "Task Created", title, username, datetime.datetime.now())
+        self.save_history(project_id, "Task Created", label, title, username, datetime.datetime.now())
         return task
 
 
@@ -215,9 +220,9 @@ class ProjectManager:
                     if member not in project["members"]:
                         project["members"].append(member)
                         print(f"Member '{member}' added to project '{project['title']}' successfully.")
+                        self.save_projects(projects)
                         input("Press Enter to continue...")
                         clear_screen()
-                        self.save_projects(projects)
                     else:
                         print(f"Member '{member}' is already a member of project '{project['title']}'.")
                         input("Press Enter to continue...")
@@ -243,9 +248,9 @@ class ProjectManager:
                 if "members" in project and member in project["members"]:
                     project["members"].remove(member)
                     print(f"Member '{member}' removed from project '{project['title']}' successfully.")
+                    self.save_projects(projects)
                     input("Press Enter to continue...")
                     clear_screen()
-                    self.save_projects(projects)
                 else:
                     print(f"Member '{member}' is not a member of project '{project['title']}'")
                     input("Press Enter to continue...")
@@ -282,7 +287,7 @@ class ProjectManager:
         console = Console()
         console.print(table)
 
-
+        
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -302,14 +307,12 @@ def load_users():
     except FileNotFoundError:
         return {}
 
-
 def print_sign_up():
     console = Console(width=50)
     console.print("  ┏┓•          ", justify='left', style="blink bold red")
     console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
     console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
-    console.print("      ┛      ┛ ", justify='left', style="blink bold red")
-
+    console.print("      ┛      ┛ ", justify='left', style="blink bold red")    
 
 def print_your_account():
     console = Console(width=50)
@@ -317,14 +320,12 @@ def print_your_account():
     console.print("  └┬┘│ ││ │├┬┘  ├─┤│  │  │ ││ ││││ │ ", justify='center', style="blink bold white")
     console.print("   ┴ └─┘└─┘┴└─  ┴ ┴└─┘└─┘└─┘└─┘┘└┘ ┴ \n", justify='center', style="blink bold white")
 
-
 def print_login():
     console = Console(width=50)
     console.print("  ┓     •  ", justify='left', style="blink bold green")
     console.print("  ┃ ┏┓┏┓┓┏┓", justify='left', style="blink bold green")
     console.print("  ┗┛┗┛┗┫┗┛┗", justify='left', style="blink bold green")
     console.print("       ┛   ", justify='left', style="blink bold green")
-
 
 def is_valid_email(email):
     console = Console(width=50)
@@ -367,6 +368,7 @@ def is_valid_password(email, username):
         password = input()
 
     return (password, email, username)
+
 
 
 def create_account():
@@ -422,7 +424,7 @@ def create_account():
     console.print("\nConfirm your password: ", justify='left', style="blink bold magenta")
     confirm_password = input()
 
-    while password != confirm_password:
+    while password!= confirm_password:
         print("[bold red]Passwords do not match![/bold red]")
         input("Press Enter to continue...")
         clear_screen()
@@ -444,6 +446,9 @@ def create_account():
         console.print("\nConfirm your password: ", justify='left', style="blink bold magenta")
         confirm_password = input()
 
+    # Hash the password using SHA-256
+    hashed_password = hashlib.sha256(password.encode()).hexdigest()
+
     clear_screen()
     print_sign_up()
     console.print("Enter your email address: ", justify='left', style="blink bold yellow")
@@ -455,13 +460,12 @@ def create_account():
     console.print("\nConfirm your password: ", justify='left', style="blink bold magenta")
     console.print(confirm_password, justify='left', style="blink bold cyan")
 
-    users[username] = {"email": email, "username": username, "password": password, "active": True}
+    users[username] = {"email": email, "username": username, "password": hashed_password, "active": True}
     save_users(users)
     print("[bold green]\nAccount created successfully![/bold green]")
     input("Press Enter to continue...")
-    user_manager.create_user(email, username, password)
+    user_manager.create_user(email, username, hashed_password)
     clear_screen()
-
 
 def print_account(email, username, password, console):
     console = Console(width=50)
@@ -485,9 +489,55 @@ def print_account(email, username, password, console):
     for overflow_p in overflow_methods_p:
         console.rule(overflow_p)
         print("\n")
-        console.print(password, overflow=overflow_p, style="blink bold cyan", justify='center')
+        console.print("********", overflow=overflow_p, justify='center', style="blink bold cyan") 
         print("\n")
 
+def login():
+    console = Console(width=50)
+    users = load_users()
+
+    print_login()
+    console.print("Enter your username: ", justify='left', style="blink bold magenta")
+    username = input()
+    clear_screen()
+    print_login()
+    console.print("Enter your username: ", justify='left', style="blink bold magenta")
+    console.print(username, justify='left', style="blink bold cyan")
+    console.print("\nEnter your password: ", justify='left', style="blink bold blue")
+    password = input()
+    clear_screen()
+    print_login()
+    console.print("Enter your username: ", justify='left', style="blink bold magenta")
+    console.print(username, justify='left', style="blink bold cyan")
+    console.print("\nEnter your password: ", justify='left', style="blink bold blue")
+    console.print(password, justify='left', style="blink bold cyan")
+
+    # Hash the input password using SHA-256
+    hashed_password = hashlib.sha256(password.encode()).hexdigest()
+
+    if any(user["username"] == username and user["password"] == hashed_password for user in users.values()):
+        print("[bold green]\nLogin successful![/bold green]")
+        input("Press Enter to continue...")
+        clear_screen()
+        print_account(users[username]['email'], username, users[username]['password'], console)
+        input("Press Enter to continue...")
+        clear_screen()
+        account(username)
+    else:
+        print("[bold red]Invalid username or password![/bold red]")
+        print(f"[cyan]Do you have an account?(y/n)[/cyan]")
+        answer = input()
+        if answer.lower() == 'y':
+            clear_screen()
+            login()
+        elif answer.lower() == 'n':
+            clear_screen()
+            create_account()
+        else:
+            clear_screen()
+            print("[bold red]Invalid input! [/bold red]")
+            input("Press Enter to continue...")
+            clear_screen()
 
 def select_project(username):
     projects = ProjectManager().load_projects()
@@ -588,6 +638,7 @@ def create_task(username, selected_project):
 
     task_manager = TaskManager()
     project_id = selected_project["project_id"]
+    label = input("Enter the task label: ")
     title = input("Enter the task title: ")
     description = input("Enter the task description: ")
 
@@ -678,6 +729,7 @@ def create_task(username, selected_project):
     new_task = {
         "task_id": str(uuid.uuid4()),
         "project_id": project_id,
+        "label": label,
         "title": title,
         "description": description,
         "deadline": end_datetime.isoformat(),
@@ -691,7 +743,7 @@ def create_task(username, selected_project):
     tasks = task_manager.load_tasks()
     tasks[new_task["task_id"]] = new_task
     task_manager.save_tasks(tasks)
-    task_manager.save_history(project_id, "Task Created", title, username, datetime.datetime.now())
+    task_manager.save_history(project_id, "Task Created", label, title, username, datetime.datetime.now())
 
     print("Task created successfully!")
     input("Press Enter to continue...")
@@ -728,60 +780,87 @@ def edit_task(username, selected_project):
     while True:
         clear_screen()
         print("Edit Task Menu:")
-        print("1. Change Title")
-        print("2. Change Description")
-        print("3. Change Assignees")
-        print("4. Change Deadline")
-        print("5. Change Priority")
-        print("6. Change Status")
-        print("7. Comments")
-        print("8. Exit")
+        print("1. Change label")
+        print("2. Change Title")
+        print("3. Change Description")
+        print("4. Change Assignees")
+        print("5. Change Deadline")
+        print("6. Change Priority")
+        print("7. Change Status")
+        print("8. Comments")
+        print("9. Exit")
 
         choice = input("Choose an option: ")
-
         if choice == '1':
+            if username == selected_project["owner"] or username in selected_task["assignees"]:
+                new_label = input("Enter new label (or leave blank): ")
+                if new_label:
+                    selected_task["label"] = new_label
+                    task_manager.save_history(selected_project["project_id"], "Task label Changed", selected_task["title"],
+                                              new_label, username, datetime.datetime.now())
+
+                    print("label changed successfully.")
+                    task_manager.save_tasks(tasks)
+                    input("Press Enter to continue...")
+                    clear_screen()
+                else:
+                    print("label remains unchanged.")
+                    input("Press Enter to continue...")
+                    clear_screen()
+            else:
+                print("You are not allowed to change this section.")
+                input("Press Enter to continue...")
+                clear_screen()
+                return
+            
+        elif choice == '2':
             if username == selected_project["owner"] or username in selected_task["assignees"]:
                 new_title = input("Enter new title (leave blank to remove current title): ")
                 if new_title:
                     selected_task["title"] = new_title
-                    task_manager.save_history(selected_project["project_id"], "Task Title Changed",
+                    task_manager.save_history(selected_project["project_id"], "Task Title Changed", selected_task["title"],
                                               new_title, username, datetime.datetime.now())
                     print("Title changed successfully.")
+                    task_manager.save_tasks(tasks)
                     input("Press Enter to continue...")
                     clear_screen()
-                    task_manager.save_tasks(tasks)
                 else:
                     selected_task["title"] = ""
-                    task_manager.save_history(selected_project["project_id"], "Task Title Removed",
+                    task_manager.save_history(selected_project["project_id"], "Task Title Removed", selected_task["title"],
                                               selected_task["title"], username, datetime.datetime.now())
                     print("Title removed successfully.")
                     task_manager.save_tasks(tasks)
-            else:
-                print("You are not allowed to change this section.")
-                input("Press Enter to continue...")
-                return
-
-        elif choice == '2':
-            if username == selected_project["owner"] or username in selected_task["assignees"]:
-                new_description = input("Enter new description (leave blank to remove current description): ")
-                if new_description:
-                    selected_task["description"] = new_description
-                    task_manager.save_history(selected_project["project_id"], "Task Description Changed",
-                                              new_description, username, datetime.datetime.now())
-                    print("Description changed successfully.")
-                    task_manager.save_tasks(tasks)
-                else:
-                    selected_task["description"] = ""
-                    task_manager.save_history(selected_project["project_id"], "Task Description Removed",
-                                              selected_task["description"], username, datetime.datetime.now())
-                    print("Description removed successfully.")
-                    task_manager.save_tasks(tasks)
+                    input("Press Enter to continue...")
             else:
                 print("You are not allowed to change this section.")
                 input("Press Enter to continue...")
                 return
 
         elif choice == '3':
+            if username == selected_project["owner"] or username in selected_task["assignees"]:
+                new_description = input("Enter new description (leave blank to remove current description): ")
+                if new_description:
+                    selected_task["description"] = new_description
+                    task_manager.save_history(selected_project["project_id"], "Task Description Changed", selected_task["title"],
+                                              new_description, username, datetime.datetime.now())
+                    print("Description changed successfully.")
+                    task_manager.save_tasks(tasks)
+                    input("Press Enter to continue...")
+                    clear_screen()
+                else:
+                    selected_task["description"] = ""
+                    task_manager.save_history(selected_project["project_id"], "Task Description Removed", selected_task["title"],
+                                              selected_task["description"], username, datetime.datetime.now())
+                    print("Description removed successfully.")
+                    task_manager.save_tasks(tasks)
+                    input("Press Enter to continue...")
+                    clear_screen()
+            else:
+                print("You are not allowed to change this section.")
+                input("Press Enter to continue...")
+                return
+
+        elif choice == '4':
             if username == selected_project["owner"]:
                 while True:  # Loop until valid choice is made
                     print("1. Add Assignees")
@@ -813,7 +892,8 @@ def edit_task(username, selected_project):
                                 continue  # Restart the loop to get input again
                         else:
                             task_manager.save_tasks(tasks)
-                            task_manager.save_history(selected_project["project_id"], "Assignees Added", ', '.join(selected_task["assignees"]), username, datetime.datetime.now())
+                            task_manager.save_history(selected_project["project_id"], "Assignees Added", selected_task["title"],
+                                                        ', '.join(selected_task["assignees"]), username, datetime.datetime.now())
                             print("Assignees added successfully.")
                             input("Press Enter to continue...")
                             clear_screen()
@@ -842,7 +922,8 @@ def edit_task(username, selected_project):
                                 continue  # Restart the loop to get input again
                         else:
                             task_manager.save_tasks(tasks)
-                            task_manager.save_history(selected_project["project_id"], "Assignees Removed", ', '.join(removed_assignees), username, datetime.datetime.now())
+                            task_manager.save_history(selected_project["project_id"], "Assignees Removed", selected_task["title"], 
+                                                     ', '.join(removed_assignees), username, datetime.datetime.now())
                             print("Assignees removed successfully.")
                             break  # Exit the loop after successful input
                 
@@ -856,12 +937,12 @@ def edit_task(username, selected_project):
                 input("Press Enter to continue...")
                 return
 
-        elif choice == '4':
+        elif choice == '5':
             if username == selected_project["owner"] or username in selected_task["assignees"]:
                 new_deadline = get_valid_datetime("Enter new deadline (YYYY-MM-DD HH:MM) or leave blank: ")
                 if new_deadline is not None:
                     selected_task["deadline"] = new_deadline.strftime("%Y-%m-%d %H:%M")
-                    task_manager.save_history(selected_project["project_id"], "Deadline Changed",
+                    task_manager.save_history(selected_project["project_id"], "Deadline Changed", selected_task["title"], 
                                       selected_task["deadline"], username, datetime.datetime.now())
                     print("Deadline changed successfully.")
                     task_manager.save_tasks(tasks)
@@ -877,7 +958,7 @@ def edit_task(username, selected_project):
                 clear_screen()
                 return
             
-        elif choice == '5':
+        elif choice == '6':
             if username == selected_project["owner"] or username in selected_task["assignees"]:
                 print("Select Priority:")
                 print("1. CRITICAL")
@@ -895,7 +976,7 @@ def edit_task(username, selected_project):
                         '4': Priority.LOW
                     }[new_priority_choice]
                     selected_task["priority"] = new_priority.value
-                    task_manager.save_history(selected_project["project_id"], "Priority Changed",
+                    task_manager.save_history(selected_project["project_id"], "Priority Changed", selected_task["title"], 
                               new_priority.name, username, datetime.datetime.now())
                     print("Priority changed successfully.")
                     task_manager.save_tasks(tasks)
@@ -911,7 +992,7 @@ def edit_task(username, selected_project):
             clear_screen()
 
 
-        elif choice == '6':
+        elif choice == '7':
             if username == selected_project["owner"] or username in selected_task["assignees"]:
                 print("Select Status:")
                 print("1. BACKLOG")
@@ -931,7 +1012,7 @@ def edit_task(username, selected_project):
                         '5': Status.ARCHIVED
                     }[new_status_choice]
                     selected_task["status"] = new_status.value
-                    task_manager.save_history(selected_project["project_id"], "Status Changed",
+                    task_manager.save_history(selected_project["project_id"], "Status Changed", selected_task["title"], 
                               new_status.name, username, datetime.datetime.now())
                     print("Status changed successfully.")
                     task_manager.save_tasks(tasks)
@@ -946,7 +1027,7 @@ def edit_task(username, selected_project):
             input("Press Enter to continue...")
             clear_screen()
 
-        elif choice == '7':
+        elif choice == '8':
             while True:
                 print("Comment Menu:")
                 print("1. Add Comment")
@@ -967,7 +1048,8 @@ def edit_task(username, selected_project):
                             continue
                         selected_task["comments"].append({"username": username, "comment": comment_text})
                         task_manager.save_tasks(tasks)
-                        task_manager.save_history(selected_project["project_id"], "Comment Added", comment_text, username, datetime.datetime.now())
+                        task_manager.save_history(selected_project["project_id"], "Comment Added", selected_task["title"], 
+                                                  comment_text, username, datetime.datetime.now())
                         print("Comment added successfully.")
                         input("Press Enter to continue...")
                         clear_screen()
@@ -1000,6 +1082,7 @@ def edit_task(username, selected_project):
                                         task_manager.save_history(
                                             selected_project["project_id"], 
                                             "Comment Removed", 
+                                            selected_task["title"],
                                             comment_to_remove["comment"], 
                                             username, 
                                             datetime.datetime.now()
@@ -1019,7 +1102,7 @@ def edit_task(username, selected_project):
                 elif comment_choice == '3':
                     break
 
-        elif choice == '8':
+        elif choice == '9':
             break
         else:
             print("Invalid choice. Please try again.")
@@ -1072,6 +1155,54 @@ def delete_task(username, selected_project):
     print("Task deleted successfully.")
     input("Press Enter to continue...")
 
+def view_tasks(selected_project, task_manager, username):
+    console = Console()
+    # Load tasks from tasks.json
+    tasks = task_manager.load_tasks()
+
+    # Filter tasks based on project_id and assignees
+    project_tasks = [task for task in tasks.values() if selected_project["project_id"] == task["project_id"] and (username in task["assignees"] or username == selected_project['owner'])]
+
+    # Create a table to display the tasks
+    table_data = {"BACKLOG": [], "TODO": [], "DOING": [], "DONE": [], "ARCHIVED": []}
+    for task in project_tasks:
+        status = task["status"]
+        table_data[status].append(task["label"])
+
+    # Find the maximum number of tasks in any status to ensure alignment
+    max_length = max(len(labels) for labels in table_data.values())
+
+    # Normalize the lengths of all status lists by adding empty strings
+    for status in table_data:
+        table_data[status].extend([""] * (max_length - len(table_data[status])))
+
+    table = Table(title="Tasks Status", box=SIMPLE)
+
+    # Adding columns for each status
+    for status in table_data.keys():
+        table.add_column(status, justify='center')
+
+    # Adding rows for each label and their corresponding task status with unique numbers
+    unique_number = 1
+    label_to_number = {}
+    for row_idx in range(max_length):
+        row = []
+        for status in table_data.keys():
+            label = table_data[status][row_idx]
+            if label:
+                if label not in label_to_number:
+                    label_to_number[label] = unique_number
+                    unique_number += 1
+                row.append(f"{label_to_number[label]}. {label}")
+            else:
+                row.append("")
+        table.add_row(*row)
+
+    console.print(table)
+    input("Press Enter to continue...")
+    clear_screen()
+
+
 
 
 def tasks_menu(username, selected_project):
@@ -1080,7 +1211,7 @@ def tasks_menu(username, selected_project):
         clear_screen()
         print("Tasks Menu:")
         print("1. Create Task")
-        print("2. Edit Task")
+        print("2. View Task")
         print("3. Delete Task")
         print("4. Exit")
 
@@ -1090,7 +1221,8 @@ def tasks_menu(username, selected_project):
         if choice == '1':
             create_task(username, selected_project)
         elif choice == '2':
-            edit_task(username, selected_project)
+            task_manager = TaskManager()
+            view_tasks(selected_project, task_manager, username)
         elif choice == '3':
             delete_task(username, selected_project)
         elif choice == '4':
@@ -1122,7 +1254,6 @@ def edit_project_menu(username, selected_project):
         else:
             print("Invalid choice. Please try again.")
             input("Press Enter to continue...")
-
 
 def account(username):
     project_manager = ProjectManager()
@@ -1172,54 +1303,9 @@ def account(username):
         else:
             print("Invalid choice. Please try again.")
 
-
-def login():
-    console = Console(width=50)
-    users = load_users()
-
-    print_login()
-    console.print("Enter your username: ", justify='left', style="blink bold magenta")
-    username = input()
-    clear_screen()
-    print_login()
-    console.print("Enter your username: ", justify='left', style="blink bold magenta")
-    console.print(username, justify='left', style="blink bold cyan")
-    console.print("\nEnter your password: ", justify='left', style="blink bold blue")
-    password = input()
-    clear_screen()
-    print_login()
-    console.print("Enter your username: ", justify='left', style="blink bold magenta")
-    console.print(username, justify='left', style="blink bold cyan")
-    console.print("\nEnter your password: ", justify='left', style="blink bold blue")
-    console.print(password, justify='left', style="blink bold cyan")
-
-    if any(user["username"] == username and user["password"] == password for user in users.values()):
-        print("[bold green]\nLogin successful![/bold green]")
-        input("Press Enter to continue...")
-        clear_screen()
-        print_account(users[username]['email'], username, users[username]['password'], console)
-        input("Press Enter to continue...")
-        clear_screen()
-        account(username)
-    else:
-        print("[bold red]Invalid username or password![/bold red]")
-        print(f"[cyan]Do you have an account?(y/n)[/cyan]")
-        answer = input()
-        if answer.lower() == 'y':
-            clear_screen()
-            login()
-        elif answer.lower() == 'n':
-            clear_screen()
-            create_account()
-        else:
-            clear_screen()
-            print("[bold red]Invalid input! [/bold red]")
-            input("Press Enter to continue...")
-            clear_screen()
-
-
+            
 def main():
-
+    clear_screen()
     user_manager = UserManager()
     project_manager = ProjectManager()
     while True:
