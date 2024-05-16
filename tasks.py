@@ -1016,10 +1016,59 @@ def edit_task(username, selected_project):
                             print("Invalid input. Please enter a valid comment number.")
                 elif comment_choice == '3':
                     break
+
         elif choice == '8':
             break
         else:
             print("Invalid choice. Please try again.")
+
+def delete_task(username, selected_project):
+    if selected_project['owner'] != username:
+        print("You do not have permission to delete tasks for this project.")
+        return
+
+    task_manager = TaskManager()
+    project_id = selected_project["project_id"]
+    
+    # Extract tasks related to the selected project
+    project_tasks = [task for task in task_manager.tasks.values() if task.get('project_id') == project_id]
+    
+    # Filter tasks owned by the user
+    user_tasks = [task for task in project_tasks if selected_project.get('owner') == username]
+    
+    # Check if the user has any tasks in the project
+    if not user_tasks:
+        print("You don't have any tasks in your project.")
+        input("Press Enter to continue...")
+        return
+
+    print("Select Task to Delete:")
+    for index, task in enumerate(user_tasks, 1):
+        print(f"{index}. {task['title']} - Deadline: {task['deadline']}")
+
+    # Prompt user to select a task
+    selected_task_index = input("Enter the number of the task to delete: ")
+    if not selected_task_index.isdigit() or int(selected_task_index) < 1 or int(selected_task_index) > len(user_tasks):
+        print("Invalid task selection. Please enter a valid task number.")
+        input("Press Enter to continue...")
+        return
+
+    selected_task = user_tasks[int(selected_task_index) - 1]
+
+    confirm = input(f"Are you sure you want to delete task '{selected_task['title']}'? (y/n): ")
+    if confirm.lower() != 'y':
+        print("Task deletion canceled.")
+        input("Press Enter to continue...")
+        return
+
+    # Remove the task
+    del task_manager.tasks[selected_task['task_id']]
+    task_manager.save_tasks(task_manager.tasks)
+    task_manager.save_history(project_id, "Task Deleted", selected_task['title'], username, datetime.datetime.now())
+    print("Task deleted successfully.")
+    input("Press Enter to continue...")
+
+
 
 def tasks_menu(username, selected_project):
     project_manager = ProjectManager()
@@ -1039,7 +1088,7 @@ def tasks_menu(username, selected_project):
         elif choice == '2':
             edit_task(username, selected_project)
         elif choice == '3':
-            pass
+            delete_task(username, selected_project)
         elif choice == '4':
             break
         else:
