@@ -749,33 +749,7 @@ def create_task(username, selected_project):
     input("Press Enter to continue...")
     clear_screen()
 
-def edit_task(username, selected_project):
-    task_manager = TaskManager()
-    tasks = task_manager.load_tasks()
-    user_tasks = [task for task in tasks.values() if task["project_id"] == selected_project["project_id"] and (
-                username in selected_project.get("members", []) or selected_project["owner"] == username)]
-
-    if not user_tasks:
-        print("You don't have any tasks in this project.")
-        input("Press Enter to continue...")
-        return
-
-    print("Select a Task:")
-    for index, task in enumerate(user_tasks, 1):
-        print(f"{index}. {task['title']}")
-
-    while True:
-        task_choice = input("Enter the task number: ")
-        if re.match("^\d+$", task_choice):
-            task_choice = int(task_choice) - 1
-            if 0 <= task_choice < len(user_tasks):
-                break
-            else:
-                print("Invalid task choice")
-        else:
-            print("Please enter a valid task number.")
-
-    selected_task = user_tasks[task_choice]
+def edit_task(username, selected_project, selected_task, task_manager):
 
     while True:
         clear_screen()
@@ -1199,11 +1173,56 @@ def view_tasks(selected_project, task_manager, username):
         table.add_row(*row)
 
     console.print(table)
-    input("Press Enter to continue...")
-    clear_screen()
+    
+    while True:
+        try:
+            task_choice = int(input("Enter the number of the task you want to view or edit: "))
+            if task_choice in label_to_number.values():
+                break
+            else:
+                print("Invalid number. Please enter a valid task number.")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
 
+    # Get the selected task based on the user's choice
+    selected_label = next(label for label, number in label_to_number.items() if number == task_choice)
+    selected_task = next(task for task in project_tasks if task["label"] == selected_label)
 
+    # Display menu for task options
+    while True:
+        clear_screen()
+        print("Task Menu:")
+        print("1. View Task Details")
+        print("2. Edit Task")
+        print("3. Exit")
 
+        menu_choice = input("Choose an option: ")
+
+        if menu_choice == '1':
+            try:
+                # Display task details
+                print(f"task_id: {selected_task['task_id']}")
+                print(f"Label: {selected_task['label']}")
+                print(f"Title: {selected_task.get('title', 'N/A')}")
+                print(f"Description: {selected_task.get('description', 'N/A')}")
+                print(f"Assignees: {', '.join(selected_task['assignees'])}")
+                print(f"Deadline: {selected_task.get('deadline', 'N/A')}")
+                print(f"Priority: {selected_task.get('priority', 'N/A')}")
+                print(f"Status: {selected_task.get('status', 'N/A')}")
+                print(f"Comments: {', '.join(comment['comment'] for comment in selected_task.get('comments', []))}")
+                input("Press Enter to continue...")
+            except KeyError as e:
+                print(f"Error: Missing key {e}")
+                input("Press Enter to continue...")
+
+        elif menu_choice == '2':
+            edit_task(username, selected_project, selected_task, task_manager)
+
+        elif menu_choice == '3':
+            break
+
+        else:
+            print("Invalid choice. Please try again.")
 
 def tasks_menu(username, selected_project):
     project_manager = ProjectManager()
@@ -1229,8 +1248,6 @@ def tasks_menu(username, selected_project):
             break
         else:
             print("Invalid choice. Please try again.")
-
-
 
 def edit_project_menu(username, selected_project):
     project_manager = ProjectManager()
