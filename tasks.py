@@ -618,13 +618,30 @@ def create_task(username, selected_project):
             print("Task creation cancelled.")
             return
 
-    priority = input("Select Priority: (1. CRITICAL, 2. HIGH, 3. MEDIUM, 4. LOW): ")
-    selected_priority = {
-        '1': Priority.CRITICAL,
-        '2': Priority.HIGH,
-        '3': Priority.MEDIUM,
-        '4': Priority.LOW
-    }.get(priority, Priority.LOW)
+        print("Select Priority:")
+    print("1. CRITICAL")
+    print("2. HIGH")
+    print("3. MEDIUM")
+    print("4. LOW")
+
+    selected_priority = None
+    while not selected_priority:
+        priority = input("Choose priority (1-4): ")
+        if priority.isdigit() and 1 <= int(priority) <= 4:
+            selected_priority = {
+                '1': Priority.CRITICAL,
+                '2': Priority.HIGH,
+                '3': Priority.MEDIUM,
+                '4': Priority.LOW
+            }.get(priority, Priority.LOW)
+        elif not priority:
+            selected_priority = Priority.CRITICAL
+        else:
+            print("Invalid input. Please choose a priority between 1 and 4.")
+    if selected_priority is None:
+        selected_priority = Priority.CRITICAL
+
+    print(f"Selected priority: {selected_priority}")
 
     status = input("Select Status: (1. BACKLOG, 2. TODO, 3. DOING, 4. DONE, 5. ARCHIVED): ")
     selected_status = {
@@ -838,8 +855,40 @@ def edit_task(username, selected_project):
                 input("Press Enter to continue...")
                 clear_screen()
                 return
+            
         elif choice == '5':
-            pass  # Add logic for changing priority
+            if username == selected_project["owner"] or username in selected_task["assignees"]:
+                print("Select Priority:")
+                print("1. CRITICAL")
+                print("2. HIGH")
+                print("3. MEDIUM")
+                print("4. LOW")
+
+                new_priority_choice = input("Choose priority (1-4) or press Enter to keep current priority: ")
+        
+                if new_priority_choice.isdigit() and 1 <= int(new_priority_choice) <= 4:
+                    new_priority = {
+                        '1': Priority.CRITICAL,
+                        '2': Priority.HIGH,
+                        '3': Priority.MEDIUM,
+                        '4': Priority.LOW
+                    }[new_priority_choice]
+                    selected_task["priority"] = new_priority.value
+                    task_manager.save_history(selected_project["project_id"], "Priority Changed",
+                              new_priority.name, username, datetime.datetime.now())
+                    print("Priority changed successfully.")
+                    task_manager.save_tasks(tasks)
+                elif new_priority_choice == "":
+                    print("Keeping current priority.")
+                else:
+                    print("Invalid priority choice. Please choose a number between 1 and 4.")
+
+            else:
+                print("You are not allowed to change this section.")
+        
+            input("Press Enter to continue...")
+            clear_screen()
+
         elif choice == '6':
             pass  # Add logic for changing status
         elif choice == '7':
