@@ -582,6 +582,8 @@ def get_valid_datetime(prompt):
 def create_task(username, selected_project):
     if selected_project['owner']!= username:
         print("You do not have permission to create tasks for this project.")
+        input("Press Enter to continue...")
+        clear_screen()
         return
 
     task_manager = TaskManager()
@@ -1025,6 +1027,8 @@ def edit_task(username, selected_project):
 def delete_task(username, selected_project):
     if selected_project['owner'] != username:
         print("You do not have permission to delete tasks for this project.")
+        input("Press Enter to continue...")
+        clear_screen()
         return
 
     task_manager = TaskManager()
