@@ -461,34 +461,9 @@ def create_account():
     save_users(users)
     print("[bold green]\nAccount created successfully![/bold green]")
     input("Press Enter to continue...")
-    user_manager.create_user(email, username, password)
+    user_manager.create_user(email, username, hashed_password)
     clear_screen()
 
-
-def print_account(email, username, password, console):
-    console = Console(width=50)
-    print_your_account()
-
-    overflow_methods: List[OverflowMethod] = ["Email"]
-    for overflow in overflow_methods:
-        console.rule(overflow)
-        print("\n")
-        console.print(email, overflow=overflow, style="blink bold cyan", justify='center')
-        print("\n")
-
-    overflow_methods_u: List_u[OverflowMethod] = ["Username"]
-    for overflow_u in overflow_methods_u:
-        console.rule(overflow_u)
-        print("\n")
-        console.print(username, overflow=overflow_u, style="blink bold yellow", justify='center')
-        print("\n")
-
-    overflow_methods_p: List_p[OverflowMethod] = ["Password"]
-    for overflow_p in overflow_methods_p:
-        console.rule(overflow_p)
-        print("\n")
-        console.print("********", overflow=overflow_p, justify='center', style="blink bold cyan") 
-        print("\n")
 
 def login():
     console = Console(width=50)
@@ -510,13 +485,14 @@ def login():
     console.print("\nEnter your password: ", justify='left', style="blink bold blue")
     console.print(password, justify='left', style="blink bold cyan")
 
+    # Hash the input password using SHA-256
     hashed_password = hashlib.sha256(password.encode()).hexdigest()
 
     if any(user["username"] == username and user["password"] == hashed_password for user in users.values()):
         print("[bold green]\nLogin successful![/bold green]")
         input("Press Enter to continue...")
         clear_screen()
-        print_account(users[username]['email'], username, users[username]['password'], console)
+        #print_account(users[username]['email'], username, users[username]['password'], console)
         input("Press Enter to continue...")
         clear_screen()
         account(username)
