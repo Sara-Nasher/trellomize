@@ -1341,10 +1341,13 @@ def main():
             create_account()
         elif choice == '2':
             login()
-        else:
+        elif choice == '3':
             print("[blue]Good luck[/blue] ")
             exit()
-
+        else:
+            print("Invalid choice. Please enter 1, 2, or 3.")
+            input("Press Enter to continue...")
+            clear_screen()
 
 if __name__ == "__main__":
     main()
