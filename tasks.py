@@ -157,6 +157,15 @@ class UserManager:
         user_projects = [proj for proj in projects.values() if
                          proj["owner"] == username or (proj.get("members") and username in proj["members"])]
         return user_projects
+    
+    def display_project_members(self, project):
+        members = project.get("members", [])
+        if members:
+            print("Project Members:")
+            for index, member in enumerate(members, 1):
+                print(f"{index}. {member}")
+        else:
+            print("No members found for this project.")
 
 
 class ProjectManager:
@@ -205,19 +214,36 @@ class ProjectManager:
         self.save_projects(projects)
         return Project(project_id, title, owner)
 
-    def delete_project(self, project_id, owner):
+    def delete_project(self, owner):
         projects = self.load_projects()
-        if project_id in projects:
-            if projects[project_id]["owner"] == owner:
-                del projects[project_id]
+        owned_projects = [proj for proj in projects.values() if proj["owner"] == owner]
+        if not owned_projects:
+            print("[bold red]You don't own any projects to delete![/bold red]")
+            return False
+    
+        while True:
+            print("Your projects:")
+            for index, proj in enumerate(owned_projects, 1):
+                print(f"{index}. {proj['title']} (ID: {proj['project_id']})")
+        
+            choice = input("Enter the number of the project you want to delete: ")
+            if not choice.isdigit() or int(choice) < 1 or int(choice) > len(owned_projects):
+                print("[bold red]Invalid choice! Please enter a valid number.[/bold red]")
+                input("Press Enter to continue...")
+                clear_screen()
+                continue
+
+            project_to_delete = owned_projects[int(choice) - 1]
+            confirm = input(f"Are you sure you want to delete '{project_to_delete['title']}' project? (y/n): ")
+            if confirm.lower() == 'y':
+                del projects[project_to_delete['project_id']]
                 self.save_projects(projects)
+                print("Project deleted successfully!")
                 return True
             else:
-                print("[bold red]You are not the owner of this project![/bold red]")
+                print("Deletion canceled.")
                 return False
-        else:
-            print("[bold red]Project not found![/bold red]")
-            return False
+
 
     def add_member_to_project(self, project_id, member, username):
         projects = self.load_projects()
@@ -232,8 +258,6 @@ class ProjectManager:
                         project["members"].append(member)
                         print(f"Member '{member}' added to project '{project['title']}' successfully.")
                         self.save_projects(projects)
-                        input("Press Enter to continue...")
-                        clear_screen()
                     else:
                         print(f"Member '{member}' is already a member of project '{project['title']}'.")
                         input("Press Enter to continue...")
@@ -250,6 +274,8 @@ class ProjectManager:
             print(f"Project with ID '{project_id}' not found.")
             input("Press Enter to continue...")
             clear_screen()
+        input("Press Enter to continue...")
+        clear_screen()
 
     def remove_member_from_project(self, project_id, member, username):
         projects = self.load_projects()
@@ -297,6 +323,7 @@ class ProjectManager:
 
         console = Console()
         console.print(table)
+
 
         
 def clear_screen():
@@ -649,9 +676,18 @@ def create_task(username, selected_project):
 
     task_manager = TaskManager()
     project_id = selected_project["project_id"]
-    label = input("Enter the task label: ")
+    while True:
+        label = input("Enter the task label: ")
+        if label.strip():
+            break  # Exit loop if label is provided
+        else:
+            print("Task label cannot be empty. Please enter a label.")
+            input("Press Enter to continue...")
+            clear_screen()
+
     title = input("Enter the task title: ")
     description = input("Enter the task description: ")
+    
 
     start_datetime = datetime.datetime.now()
     end_datetime = get_valid_datetime("Enter the task deadline (YYYY-MM-DD HH:MM): ")
@@ -660,12 +696,7 @@ def create_task(username, selected_project):
     elif end_datetime < start_datetime:
         print("Invalid deadline. It should be after the start time.")
         return
-
-    members = selected_project.get("members", [])
-    print("Select Members:")
-    for index, member in enumerate(members, 1):
-        print(f"{index}. {member}")
-
+    UserManager().display_project_members(selected_project)
     member_choices = input("Enter the member numbers (comma-separated): ")
     selected_members = []
     if member_choices:
@@ -787,8 +818,6 @@ def edit_task(username, selected_project, selected_task, task_manager):
                                               new_label, username, datetime.datetime.now())
 
                     print("label changed successfully.")
-                    task_manager.save_tasks(selected_task)
-                    
                     input("Press Enter to continue...")
                     clear_screen()
                 else:
@@ -809,7 +838,6 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Task Title Changed", selected_task["title"],
                                               new_title, username, datetime.datetime.now())
                     print("Title changed successfully.")
-                    task_manager.save_tasks(selected_task)
                     input("Press Enter to continue...")
                     clear_screen()
                 else:
@@ -817,7 +845,6 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Task Title Removed", selected_task["title"],
                                               selected_task["title"], username, datetime.datetime.now())
                     print("Title removed successfully.")
-                    task_manager.save_tasks(selected_task)
                     input("Press Enter to continue...")
             else:
                 print("You are not allowed to change this section.")
@@ -832,7 +859,6 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Task Description Changed", selected_task["title"],
                                               new_description, username, datetime.datetime.now())
                     print("Description changed successfully.")
-                    task_manager.save_tasks(selected_task)
                     input("Press Enter to continue...")
                     clear_screen()
                 else:
@@ -840,7 +866,6 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Task Description Removed", selected_task["title"],
                                               selected_task["description"], username, datetime.datetime.now())
                     print("Description removed successfully.")
-                    task_manager.save_tasks(selected_task)
                     input("Press Enter to continue...")
                     clear_screen()
             else:
@@ -879,7 +904,6 @@ def edit_task(username, selected_project, selected_task, task_manager):
                                 print("Invalid assignee choice.")
                                 continue  # Restart the loop to get input again
                         else:
-                            task_manager.save_tasks(selected_task)
                             task_manager.save_history(selected_project["project_id"], "Assignees Added", selected_task["title"],
                                                         ', '.join(selected_task["assignees"]), username, datetime.datetime.now())
                             print("Assignees added successfully.")
@@ -909,7 +933,6 @@ def edit_task(username, selected_project, selected_task, task_manager):
                                 print("Invalid assignee choice.")
                                 continue  # Restart the loop to get input again
                         else:
-                            task_manager.save_tasks(selected_task)
                             task_manager.save_history(selected_project["project_id"], "Assignees Removed", selected_task["title"], 
                                                      ', '.join(removed_assignees), username, datetime.datetime.now())
                             print("Assignees removed successfully.")
@@ -934,7 +957,6 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Deadline Changed", selected_task["title"], 
                                       selected_task["deadline"], username, datetime.datetime.now())
                     print("Deadline changed successfully.")
-                    task_manager.save_tasks(selected_task)
                     input("Press Enter to continue...")
                     clear_screen()
                 else:
@@ -968,7 +990,6 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Priority Changed", selected_task["title"], 
                               new_priority.name, username, datetime.datetime.now())
                     print("Priority changed successfully.")
-                    task_manager.save_tasks(selected_task)
                 elif new_priority_choice == "":
                     print("Keeping current priority.")
                 else:
@@ -988,7 +1009,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                 print("2. TODO")
                 print("3. DOING")
                 print("4. DONE")
-                print("4. ARCHIVED")
+                print("5. ARCHIVED")
 
                 new_status_choice = input("Choose status (1-5) or press Enter to keep current status: ")
         
@@ -1004,7 +1025,6 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Status Changed", selected_task["title"], 
                               new_status.name, username, datetime.datetime.now())
                     print("Status changed successfully.")
-                    task_manager.save_tasks(selected_task)
                 elif new_status_choice == "":
                     print("Keeping current status.")
                 else:
@@ -1036,7 +1056,6 @@ def edit_task(username, selected_project, selected_task, task_manager):
                             print("Comment cannot be empty.")
                             continue
                         selected_task["comments"].append({"username": username, "comment": comment_text})
-                        task_manager.save_tasks(selected_task)
                         task_manager.save_history(selected_project["project_id"], "Comment Added", selected_task["title"], 
                                                   comment_text, username, datetime.datetime.now())
                         print("Comment added successfully.")
@@ -1067,7 +1086,6 @@ def edit_task(username, selected_project, selected_task, task_manager):
                                     try:
                                         # Remove the comment and save the changes
                                         selected_task["comments"].remove(comment_to_remove)
-                                        task_manager.save_tasks(selected_task)
                                         task_manager.save_history(
                                             selected_project["project_id"], 
                                             "Comment Removed", 
@@ -1092,13 +1110,14 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     break
 
         elif choice == '9':
-            task_manager.save_tasks(selected_task)
-            break
+            task_manager.update_task(selected_task['task_id'], selected_task)
+            print("Task saved and exited.")
+            return selected_task
         else:
             print("Invalid choice. Please try again.")
-    updated_task = {} 
-    task_manager.update_task(selected_task['task_id'], updated_task)
-    return selected_task
+            input("Press Enter to continue...")
+            clear_screen()
+    
 
 def delete_task(username, selected_project):
     if selected_project['owner'] != username:
@@ -1235,10 +1254,17 @@ def view_tasks(selected_project, task_manager, username):
                 print(f"Title: {selected_task.get('title', 'N/A')}")
                 print(f"Description: {selected_task.get('description', 'N/A')}")
                 print(f"Assignees: {', '.join(selected_task['assignees'])}")
-                print(f"Deadline: {selected_task.get('deadline', 'N/A')}")
+                deadline = selected_task.get('deadline')
+                if deadline:
+                    deadline_formatted = datetime.datetime.fromisoformat(deadline).strftime("%Y-%m-%d %H:%M")
+                else:
+                    deadline_formatted = 'N/A'
+                print(f"Deadline: {deadline_formatted}")
                 print(f"Priority: {selected_task.get('priority', 'N/A')}")
                 print(f"Status: {selected_task.get('status', 'N/A')}")
-                print(f"Comments: {', '.join(comment['comment'] for comment in selected_task.get('comments', []))}")
+                print("Comments:")
+                for comment in selected_task.get('comments', []):
+                    print(f"  {comment['username']}: {comment['comment']}")
                 input("Press Enter to continue...")
             except KeyError as e:
                 print(f"Error: Missing key {e}")
@@ -1324,21 +1350,7 @@ def account(username):
                 edit_project_menu(username, selected_project)
 
         elif choice == '3':
-            project_id = input("Enter project ID to delete: ")
-            confirm = input("Are you sure you want to delete this project? (y/n): ")
-            if confirm.lower() == 'y':
-                if project_manager.delete_project(project_id, username):
-                    print("Project deleted successfully!")
-                    input("Press Enter to continue...")
-                    clear_screen()
-                else:
-                    print("[bold red]Failed to delete project![/bold red]")
-                    input("Press Enter to continue...")
-                    clear_screen()
-            else:
-                print("Deletion canceled.")
-                input("Press Enter to continue...")
-                clear_screen()
+            project_manager.delete_project(username)
 
         elif choice == '4':
             project_manager.view_projects(username)
