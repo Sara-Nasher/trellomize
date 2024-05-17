@@ -57,7 +57,11 @@ class TaskManager:
     def load_tasks(self):
         try:
             with open(self.tasks_file, "r") as file:
-                return json.load(file)
+                tasks = json.load(file)
+                if not isinstance(tasks, dict):
+                    print("Error: Loaded tasks are not in the expected format.")
+                    return {}
+                return tasks
         except FileNotFoundError:
             return {}
 
@@ -104,6 +108,13 @@ class TaskManager:
         self.save_history(project_id, "Task Created", label, title, username, datetime.datetime.now())
         return task
 
+    def update_task(self, task_id, updated_task):
+        if task_id in self.tasks:
+            self.tasks[task_id].update(updated_task)
+            self.save_tasks(self.tasks)
+            print("Task updated successfully.")
+        else:
+            print("Error: Task not found.")
 
 class User:
     def __init__(self, email, username, password, active=True):
@@ -707,20 +718,20 @@ def create_task(username, selected_project):
     selected_status = None
     while not selected_status:
         status = input("Choose Status (1-5): ")
-        if status.isdigit() and 1 <= int(status) <= 4:
+        if status.isdigit() and 1 <= int(status) <= 5:
             selected_status = {
                 '1': Status.BACKLOG,
                 '2': Status.TODO,
                 '3': Status.DOING,
                 '4': Status.DONE, 
-                '4': Status.ARCHIVED
+                '5': Status.ARCHIVED
             }.get(status, Status.BACKLOG)
         elif not status:
             selected_status = Status.BACKLOG
         else:
             print("Invalid input. Please choose a status between 1 and 5.")
     if selected_status is None:
-        selected_status = Status.CRITICAL
+        selected_status = Status.BACKLOG
 
     print(f"Selected status: {selected_status}")
 
@@ -749,8 +760,10 @@ def create_task(username, selected_project):
     input("Press Enter to continue...")
     clear_screen()
 
-def edit_task(username, selected_project, selected_task, task_manager):
 
+def edit_task(username, selected_project, selected_task, task_manager):
+    task_manager = TaskManager()
+    task_manager.load_tasks()
     while True:
         clear_screen()
         print("Edit Task Menu:")
@@ -774,7 +787,8 @@ def edit_task(username, selected_project, selected_task, task_manager):
                                               new_label, username, datetime.datetime.now())
 
                     print("label changed successfully.")
-                    task_manager.save_tasks(tasks)
+                    task_manager.save_tasks(selected_task)
+                    
                     input("Press Enter to continue...")
                     clear_screen()
                 else:
@@ -795,7 +809,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Task Title Changed", selected_task["title"],
                                               new_title, username, datetime.datetime.now())
                     print("Title changed successfully.")
-                    task_manager.save_tasks(tasks)
+                    task_manager.save_tasks(selected_task)
                     input("Press Enter to continue...")
                     clear_screen()
                 else:
@@ -803,7 +817,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Task Title Removed", selected_task["title"],
                                               selected_task["title"], username, datetime.datetime.now())
                     print("Title removed successfully.")
-                    task_manager.save_tasks(tasks)
+                    task_manager.save_tasks(selected_task)
                     input("Press Enter to continue...")
             else:
                 print("You are not allowed to change this section.")
@@ -818,7 +832,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Task Description Changed", selected_task["title"],
                                               new_description, username, datetime.datetime.now())
                     print("Description changed successfully.")
-                    task_manager.save_tasks(tasks)
+                    task_manager.save_tasks(selected_task)
                     input("Press Enter to continue...")
                     clear_screen()
                 else:
@@ -826,7 +840,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Task Description Removed", selected_task["title"],
                                               selected_task["description"], username, datetime.datetime.now())
                     print("Description removed successfully.")
-                    task_manager.save_tasks(tasks)
+                    task_manager.save_tasks(selected_task)
                     input("Press Enter to continue...")
                     clear_screen()
             else:
@@ -865,7 +879,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                                 print("Invalid assignee choice.")
                                 continue  # Restart the loop to get input again
                         else:
-                            task_manager.save_tasks(tasks)
+                            task_manager.save_tasks(selected_task)
                             task_manager.save_history(selected_project["project_id"], "Assignees Added", selected_task["title"],
                                                         ', '.join(selected_task["assignees"]), username, datetime.datetime.now())
                             print("Assignees added successfully.")
@@ -895,10 +909,11 @@ def edit_task(username, selected_project, selected_task, task_manager):
                                 print("Invalid assignee choice.")
                                 continue  # Restart the loop to get input again
                         else:
-                            task_manager.save_tasks(tasks)
+                            task_manager.save_tasks(selected_task)
                             task_manager.save_history(selected_project["project_id"], "Assignees Removed", selected_task["title"], 
                                                      ', '.join(removed_assignees), username, datetime.datetime.now())
                             print("Assignees removed successfully.")
+                            input("Press Enter to continue...")
                             break  # Exit the loop after successful input
                 
                     elif assignee_choice == '3':
@@ -919,7 +934,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Deadline Changed", selected_task["title"], 
                                       selected_task["deadline"], username, datetime.datetime.now())
                     print("Deadline changed successfully.")
-                    task_manager.save_tasks(tasks)
+                    task_manager.save_tasks(selected_task)
                     input("Press Enter to continue...")
                     clear_screen()
                 else:
@@ -953,7 +968,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Priority Changed", selected_task["title"], 
                               new_priority.name, username, datetime.datetime.now())
                     print("Priority changed successfully.")
-                    task_manager.save_tasks(tasks)
+                    task_manager.save_tasks(selected_task)
                 elif new_priority_choice == "":
                     print("Keeping current priority.")
                 else:
@@ -989,7 +1004,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Status Changed", selected_task["title"], 
                               new_status.name, username, datetime.datetime.now())
                     print("Status changed successfully.")
-                    task_manager.save_tasks(tasks)
+                    task_manager.save_tasks(selected_task)
                 elif new_status_choice == "":
                     print("Keeping current status.")
                 else:
@@ -1021,7 +1036,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                             print("Comment cannot be empty.")
                             continue
                         selected_task["comments"].append({"username": username, "comment": comment_text})
-                        task_manager.save_tasks(tasks)
+                        task_manager.save_tasks(selected_task)
                         task_manager.save_history(selected_project["project_id"], "Comment Added", selected_task["title"], 
                                                   comment_text, username, datetime.datetime.now())
                         print("Comment added successfully.")
@@ -1052,7 +1067,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                                     try:
                                         # Remove the comment and save the changes
                                         selected_task["comments"].remove(comment_to_remove)
-                                        task_manager.save_tasks(tasks)
+                                        task_manager.save_tasks(selected_task)
                                         task_manager.save_history(
                                             selected_project["project_id"], 
                                             "Comment Removed", 
@@ -1077,9 +1092,13 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     break
 
         elif choice == '9':
+            task_manager.save_tasks(selected_task)
             break
         else:
             print("Invalid choice. Please try again.")
+    updated_task = {} 
+    task_manager.update_task(selected_task['task_id'], updated_task)
+    return selected_task
 
 def delete_task(username, selected_project):
     if selected_project['owner'] != username:
@@ -1125,7 +1144,7 @@ def delete_task(username, selected_project):
     # Remove the task
     del task_manager.tasks[selected_task['task_id']]
     task_manager.save_tasks(task_manager.tasks)
-    task_manager.save_history(project_id, "Task Deleted", selected_task['title'], username, datetime.datetime.now())
+    task_manager.save_history(project_id, "Task Deleted", selected_task["title"], selected_task['title'], username, datetime.datetime.now())
     print("Task deleted successfully.")
     input("Press Enter to continue...")
 
@@ -1134,8 +1153,17 @@ def view_tasks(selected_project, task_manager, username):
     # Load tasks from tasks.json
     tasks = task_manager.load_tasks()
 
-    # Filter tasks based on project_id and assignees
-    project_tasks = [task for task in tasks.values() if selected_project["project_id"] == task["project_id"] and (username in task["assignees"] or username == selected_project['owner'])]
+    if not isinstance(tasks, dict):
+        print("Error: Loaded tasks are not in the expected format.")
+        return
+
+    # Filter tasks based on project_id
+    project_tasks = [task for task in tasks.values() if isinstance(task, dict) and task.get("project_id") == selected_project.get("project_id")]
+
+    if not project_tasks:
+        print("Error: No tasks in this project.")
+        input("Press Enter to continue...")
+        return
 
     # Create a table to display the tasks
     table_data = {"BACKLOG": [], "TODO": [], "DOING": [], "DONE": [], "ARCHIVED": []}
@@ -1199,6 +1227,7 @@ def view_tasks(selected_project, task_manager, username):
         menu_choice = input("Choose an option: ")
 
         if menu_choice == '1':
+            
             try:
                 # Display task details
                 print(f"task_id: {selected_task['task_id']}")
@@ -1214,18 +1243,20 @@ def view_tasks(selected_project, task_manager, username):
             except KeyError as e:
                 print(f"Error: Missing key {e}")
                 input("Press Enter to continue...")
-
         elif menu_choice == '2':
-            edit_task(username, selected_project, selected_task, task_manager)
-
+            selected_task = edit_task(username, selected_project, selected_task, task_manager)  # Update selected_task with the returned value
         elif menu_choice == '3':
             break
 
         else:
             print("Invalid choice. Please try again.")
 
+
+
+
 def tasks_menu(username, selected_project):
     project_manager = ProjectManager()
+    task_manager = TaskManager()
     while True:
         clear_screen()
         print("Tasks Menu:")
@@ -1240,7 +1271,6 @@ def tasks_menu(username, selected_project):
         if choice == '1':
             create_task(username, selected_project)
         elif choice == '2':
-            task_manager = TaskManager()
             view_tasks(selected_project, task_manager, username)
         elif choice == '3':
             delete_task(username, selected_project)
