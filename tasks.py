@@ -68,6 +68,7 @@ class TaskManager:
                 tasks = json.load(file)
                 if not isinstance(tasks, dict):
                     print("Error: Loaded tasks are not in the expected format.")
+                    logging.info("Error: Loaded tasks are not in the expected format.")
                     return {}
                 return tasks
         except FileNotFoundError:
@@ -104,6 +105,7 @@ class TaskManager:
             logger.info(f"Task {task_id} updated successfully.")
         else:
             print("Error: Task not found.")
+            logger.info(f"Error: Task {task_id} not found.")
 
     def view_task_history(self, selected_task):
         try:
@@ -126,7 +128,8 @@ class TaskManager:
                     print(f"Timestamp: {formatted_time}")
                     print()
         except FileNotFoundError:
-            print("No history available for this task.")
+            print("Erorr: No history available for this task.")
+            logging.info(f"Erorr: No history available task {selected_task}.")
 
 class User:
     def __init__(self, email, username, password, active=True):
@@ -178,7 +181,8 @@ class UserManager:
             for index, member in enumerate(members, 1):
                 print(f"{index}. {member}")
         else:
-            print("No members found for this project.")
+            print("Erorr: No members found for this project.")
+            logger.info(f"Erorr: No members found project {project}.")
 
 
 class ProjectManager:
@@ -205,7 +209,8 @@ class ProjectManager:
 
         # Check if the project_id already exists
         if project_id in projects:
-            print("[bold red]Project ID already exists! Please choose a different one.[/bold red]")
+            print("[bold red]Erorr: Project ID already exists! Please choose a different one.[/bold red]")
+            logging.info(f"Erorr: Project ID {project_id} already exists!")
             input("Press Enter to continue...")
             clear_screen()
             return None
@@ -213,8 +218,8 @@ class ProjectManager:
         # Check if the project with the same title already exists for the owner
         for proj in projects.values():
             if proj["title"] == title and proj["owner"] == owner:
-                print(
-                    "[bold red]You already have a project with the same title! Please choose a different title.[/bold red]")
+                print("Erorr: [bold red]You already have a project with the same title! Please choose a different title.[/bold red]")
+                logging.error(f"You already have a project with the same title: {title} owned by {owner}!")
                 input("Press Enter to continue...")
                 clear_screen()
                 return None
@@ -232,7 +237,8 @@ class ProjectManager:
         projects = self.load_projects()
         owned_projects = [proj for proj in projects.values() if proj["owner"] == owner]
         if not owned_projects:
-            print("[bold red]You don't own any projects to delete![/bold red]")
+            print("[bold red]Erorr: You don't own any projects to delete![/bold red]")
+            logging.info("Erorr: You don't own any projects to delete!You don't own any projects to delete!")
             return False
     
         while True:
@@ -242,7 +248,8 @@ class ProjectManager:
         
             choice = input("Enter the number of the project you want to delete: ")
             if not choice.isdigit() or int(choice) < 1 or int(choice) > len(owned_projects):
-                print("[bold red]Invalid choice! Please enter a valid number.[/bold red]")
+                print("[bold red]Erorr: Invalid choice! Please enter a valid number.[/bold red]")
+                logging.info("Erorr: Invalid choice! Please enter a valid number.")
                 input("Press Enter to continue...")
                 clear_screen()
                 continue
@@ -259,6 +266,7 @@ class ProjectManager:
                 return True
             else:
                 print("Deletion canceled.")
+                logging.info(f"Erorr: project {project_to_delete['title']} Deletion canceled.")
                 input("Press Enter to continue...")
                 clear_screen()
                 return False
@@ -281,19 +289,23 @@ class ProjectManager:
                         input("Press Enter to continue...")
                         clear_screen()
                     else:
-                        print(f"Member '{member}' is already a member of project '{project['title']}'.")
+                        print(f"Erorr: Member '{member}' is already a member of project '{project['title']}'.")
+                        logging.info(f"Erorr: Member '{member}' is already a member of project '{project['title']}'.")
                         input("Press Enter to continue...")
                         clear_screen()
                 else:
-                    print("[bold red]User not found![/bold red]")
+                    print("[bold red]Erorr: User not found![/bold red]")
+                    logging(f"Erorr: User '{member}' not found!")
                     input("Press Enter to continue...")
                     clear_screen()
             else:
-                print("[bold red]You are not the owner of this project![/bold red]")
+                print("[bold red]Erorr: You are not the owner of this project![/bold red]")
+                logging.info("Erorr: You are not the owner of this project!")
                 input("Press Enter to continue...")
                 clear_screen()
         else:
-            print(f"Project with ID '{project_id}' not found.")
+            print(f"Erorr: Project with ID '{project_id}' not found.")
+            logging.info(f"Erorr: Project with ID '{project_id}' not found.")
             input("Press Enter to continue...")
             clear_screen()
 
@@ -309,7 +321,8 @@ class ProjectManager:
                     while True:
                         choice = input("Enter the number of the member you want to remove: ")
                         if not choice.isdigit() or int(choice) < 1 or int(choice) > len(project["members"]):
-                            print("[bold red]Invalid choice! Please enter a valid number.[/bold red]")
+                            print("[bold red]Erorr: Invalid choice! Please enter a valid number.[/bold red]")
+                            logging.info("Erorr: Invalid choice! Please enter a valid number.")
                             input("Press Enter to continue...")
                             clear_screen()
                             print("Members of project:")
@@ -327,20 +340,22 @@ class ProjectManager:
                             clear_screen()
                             return True
                         else:
-                            print("Removal canceled.")
-                            input("Press Enter to continue...")
+                            print("Erorr: Remove canceled.")
+                            logging.info("Erorr: Remove canceled.")
                             clear_screen()
                             return False
                 else:
-                    print("This project has no members.")
-                    input("Press Enter to continue...")
+                    print("Erorr: This project has no members.")
+                    logging.info("Erorr: This project has no members.")
                     clear_screen()
             else:
-                print("[bold red]You are not the owner of this project![/bold red]")
+                print("[bold red]Erorr: You are not the owner of this project![/bold red]")
+                logging.info(f"Erorr: You are not the owner of project '{project['title']}'!")
                 input("Press Enter to continue...")
                 clear_screen()
         else:
-            print(f"Project with ID '{project_id}' not found.")
+            print(f"Erorr: Project with ID '{project_id}' not found.")
+            logging.info(f"Erorr: Project with ID '{project_id}' not found.")
             input("Press Enter to continue...")
             clear_screen()
 
@@ -410,8 +425,9 @@ def print_login():
 def is_valid_email(email):
     console = Console(width=50)
     while not email.endswith("@gmail.com"):
-        print("[bold red]Invalid email format![/bold red]"
+        print("[bold red]Erorr: Invalid email format![/bold red]"
               "\n[cyan]Valid example: iust@gmail.com[/cyan]")
+        logging.info("Erorr: Invalid email format!")
 
         input("Press Enter to continue...")
         clear_screen()
@@ -428,12 +444,13 @@ def is_valid_password(email, username):
     while not (any(char.isupper() for char in password) and any(char.islower() for char in password) \
                and any(char in "~@#$!%^&*?" for char in password) and any(char.isdigit() for char in password) \
                and len(password) == 8):
-        print("[bold red]Invalid password! "
+        print("[bold red]Erorr: Invalid password! "
               "\nYour password must have 8 characters, "
               "\nat least one uppercase letter, "
               "\nat least one lowercase letter, "
               "\nat least one number, "
               "\nand at least one of the characters '~@#$!%^&*?'[/bold red]")
+        logging.info("Invalid password!")
 
         print("[cyan]Valid example: Iust@ac1[/cyan]")
         input("Press Enter to continue...")
@@ -461,7 +478,8 @@ def create_account():
     email = is_valid_email(input())
 
     while any(user_data['email'] == email for user_data in users.values()):
-        print("[bold red]Email already exists![/bold red]")
+        print("[bold red]Eror: Email already exists![/bold red]")
+        logging.info("Erorr: Email already exists!")
         input("Press Enter to continue...")
         clear_screen()
         print_sign_up()
@@ -476,7 +494,8 @@ def create_account():
     username = input()
 
     while username in users:
-        print("[bold red]Username already exists![/bold red]")
+        print("[bold red]Erorr: Username already exists![/bold red]")
+        logging.info("Erorr: Username already exists!")
         input("Press Enter to continue...")
         clear_screen()
         print_sign_up()
@@ -505,7 +524,8 @@ def create_account():
     confirm_password = input()
 
     while password!= confirm_password:
-        print("[bold red]Passwords do not match![/bold red]")
+        print("[bold red]Eror: Passwords do not match![/bold red]")
+        logging.info("Erorr: [bold red]Passwords do not match![/bold red]!")
         input("Press Enter to continue...")
         clear_screen()
         print_sign_up()
@@ -543,6 +563,7 @@ def create_account():
     users[username] = {"email": email, "username": username, "password": hashed_password, "active": True}
     save_users(users)
     print("[bold green]\nAccount created successfully![/bold green]")
+    logging.info("Account created successfully")
     input("Press Enter to continue...")
     user_manager.create_user(email, username, hashed_password)
     clear_screen()
@@ -597,6 +618,7 @@ def login():
 
     if any(user["username"] == username and user["password"] == hashed_password for user in users.values()):
         print("[bold green]\nLogin successful![/bold green]")
+        logging.info("Login successful!")
         input("Press Enter to continue...")
         clear_screen()
         print_account(users[username]['email'], username, users[username]['password'], console)
@@ -604,7 +626,8 @@ def login():
         clear_screen()
         account(username)
     else:
-        print("[bold red]Invalid username or password![/bold red]")
+        print("[bold red]Error: Invalid username or password![/bold red]")
+        logging.info("Error: Invalid username or password!")
         print(f"[cyan]Do you have an account?(y/n)[/cyan]")
         answer = input()
         if answer.lower() == 'y':
@@ -615,8 +638,8 @@ def login():
             create_account()
         else:
             clear_screen()
-            print("[bold red]Invalid input! [/bold red]")
-            input("Press Enter to continue...")
+            print("[bold red]Erorr: Invalid input! [/bold red]")
+            logging.info("Erorr: Invalid input!")
             clear_screen()
 
 def select_project(username):
@@ -624,7 +647,8 @@ def select_project(username):
     owner_projects = [proj for proj in projects.values() if proj["owner"] == username]
 
     if not owner_projects:
-        print("You are not associated with any projects.")
+        print("Error: You are not associated with any projects.")
+        logging.info("Error: You are not associated with any projects.")
         input("Press Enter to continue...")
         clear_screen()
         return None
@@ -640,13 +664,15 @@ def select_project(username):
             if 0 <= project_choice < len(owner_projects):
                 break
             else:
-                print("Invalid project choice")
+                print("Error: Invalid project choice")
+                logging.info("Error: Invalid project choice")
                 input("Press Enter to continue...")
                 clear_screen()
                 for index, project in enumerate(owner_projects, 1):
                     print(f"{index}. {project['title']}")
         else:
-            print("Please enter a valid project number.")
+            print("Error: Please enter a valid project number.")
+            logging.info("Error: Invalid project number")
             input("Press Enter to continue...")
             clear_screen()
             for index, project in enumerate(owner_projects, 1):
@@ -662,7 +688,8 @@ def show_project(username):
                        proj["owner"] == username or (proj.get("members") and username in proj["members"])]
 
     if not person_projects:
-        print("You are not associated with any projects.")
+        print("Error: You are not associated with any projects.")
+        logging.info("Error: You are not associated with any projects.")
         input("Press Enter to continue...")
         clear_screen()
         return None
@@ -678,7 +705,8 @@ def show_project(username):
             if 0 <= project_choice < len(person_projects):
                 break
             else:
-                print("Invalid project choice")
+                print("Error: Invalid project choice")
+                logging.info("Error: Invalid project choice")
                 input("Press Enter to continue...")
                 clear_screen()
                 print("Select a Project:")
@@ -686,6 +714,7 @@ def show_project(username):
                     print(f"{index}. {project['title']}")
         else:
             print("Please enter a valid project number.")
+            logging.info("Please enter a valid project number.")
             input("Press Enter to continue...")
             clear_screen()
             for index, project in enumerate(person_projects, 1):
@@ -703,18 +732,21 @@ def get_valid_datetime(prompt):
         try:
             datetime_obj = datetime.strptime(datetime_input, "%Y-%m-%d %H:%M")
             if datetime_obj < datetime.now():
-                print("Invalid date and time. It should be in the future.")
+                print("Error: Invalid date and time. It should be in the future.")
+                logging.info("Error: Invalid date and time. It should be in the future.")
                 continue
             return datetime_obj
         except ValueError:
-            print("Invalid date format. Please enter the date and time in the format YYYY-MM-DD HH:MM.")
+            print("Error: Invalid date format. Please enter the date and time in the format YYYY-MM-DD HH:MM.")
+            logging.info("Error: Invalid date format. Please enter the date and time in the format YYYY-MM-DD HH:MM.")
 
 def create_task(username, selected_project):
     project_manager = ProjectManager()
     projects = project_manager.load_projects()
 
     if selected_project['owner'] != username:
-        print("You do not have permission to create tasks for this project.")
+        print("Error: You do not have permission to create tasks for this project.")
+        logging.info("Error: You do not have permission to create tasks for this project.")
         input("Press Enter to continue...")
         clear_screen()
         return
@@ -727,7 +759,8 @@ def create_task(username, selected_project):
         if label.strip():
             break
         else:
-            print("Task label cannot be empty. Please enter a label.")
+            print("Error: Task label cannot be empty. Please enter a label.")
+            logging.info("Error: Task label cannot be empty.")
             input("Press Enter to continue...")
             clear_screen()
 
@@ -738,7 +771,8 @@ def create_task(username, selected_project):
     if not end_datetime:
         end_datetime = start_datetime + timedelta(days=1)
     elif end_datetime < start_datetime:
-        print("Invalid deadline. It should be after the start time.")
+        print("Error: Invalid deadline. It should be after the start time.")
+        logging.info("Error: Invalid deadline. It should be after the start time.")
         return
 
     print("Members in the project:")
@@ -751,6 +785,7 @@ def create_task(username, selected_project):
         member_choices = input("Enter the member numbers (comma-separated): ")
         if not member_choices:
             print("No members selected for the task. You can add members later.")
+            logging.info("Error: No members selected for the task. You can add members later.")
             proceed = input("Do you want to proceed without assigning any members? (y/n): ")
             if proceed.lower() != 'y':
                 print("Task creation cancelled.")
@@ -762,7 +797,8 @@ def create_task(username, selected_project):
             if choice.isdigit() and 0 < int(choice) <= len(members):
                 selected_members.append(members[int(choice) - 1])
             else:
-                print("Invalid member choice.")
+                print("Error: Invalid member choice.")
+                logging.info("Error: Invalid member choice.")
                 invalid_choice = True
                 break
         if not invalid_choice:
@@ -788,7 +824,8 @@ def create_task(username, selected_project):
             selected_priority = Priority.CRITICAL
             break
         else:
-            print("Invalid input. Please choose a priority between 1 and 4.")
+            print("Error: Invalid input. Please choose a priority between 1 and 4.")
+            logging.info("Error: Invalid input.")
 
     print(f"Selected priority: {selected_priority}")
 
@@ -814,7 +851,8 @@ def create_task(username, selected_project):
             selected_status = Status.BACKLOG
             break
         else:
-            print("Invalid input. Please choose a status between 1 and 5.")
+            print("Error: Invalid input. Please choose a status between 1 and 5.")
+            logging.info("Error: Invalid input.")
 
     print(f"Selected status: {selected_status}")
 
@@ -840,6 +878,7 @@ def create_task(username, selected_project):
     task_manager.save_history(project_id, "Task Created", label, title, username, datetime.now())
 
     print("Task created successfully!")
+    logging.info("Task created successfully!")
     input("Press Enter to continue...")
     clear_screen()
 
@@ -876,10 +915,12 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     clear_screen()
                 else:
                     print("label remains unchanged.")
+                    logger.info("label remains unchanged.")
                     input("Press Enter to continue...")
                     clear_screen()
             else:
                 print("You are not allowed to change this section.")
+                logger.info("You are not allowed to change this section.")
                 input("Press Enter to continue...")
                 clear_screen()
                 return
@@ -904,7 +945,8 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     logger.info(f"Title of task {selected_task} removed successfully.")
                     input("Press Enter to continue...")
             else:
-                print("You are not allowed to change this section.")
+                print("Error: You are not allowed to change this section.")
+                logger.info("Error: You are not allowed to change this section.")
                 input("Press Enter to continue...")
                 return
 
@@ -930,6 +972,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     clear_screen()
             else:
                 print("You are not allowed to change this section.")
+                logger.info("You are not allowed to change this section.")
                 input("Press Enter to continue...")
                 return
 
@@ -949,6 +992,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                         available_assignees = [member for member in selected_project["members"] if member not in selected_task["assignees"]]
                         if not available_assignees:
                             print("There are no available assignees to add.")
+                            logging.info("There are no available assignees to add.")
                             input("Press Enter to continue...")
                             continue
             
@@ -963,7 +1007,8 @@ def edit_task(username, selected_project, selected_task, task_manager):
                             if 0 <= index < len(available_assignees):
                                 selected_task["assignees"].append(available_assignees[index])
                             else:
-                                print("Invalid assignee choice.")
+                                print("Error: Invalid assignee choice.")
+                                logging.info("Error: Invalid assignee choice.")
                                 input("Press Enter to continue...")
                                 continue  # Restart the loop to get input again
                         else:
@@ -979,7 +1024,8 @@ def edit_task(username, selected_project, selected_task, task_manager):
                         clear_screen()
                         # Remove Assignees
                         if not selected_task["assignees"]:
-                            print("There are no assignees to remove.")
+                            print("Error: There are no assignees to remove.")
+                            logging.info("Error: There are no assignees to remove.")
                             input("Press Enter to continue...")
                             continue
             
@@ -995,8 +1041,8 @@ def edit_task(username, selected_project, selected_task, task_manager):
                             if 0 <= index < len(selected_task["assignees"]):
                                 removed_assignees.append(selected_task["assignees"].pop(index))
                             else:
-                                print("Invalid assignee choice.")
-                                input("Press Enter to continue...")
+                                print("Error: Invalid assignee choice.")
+                                logging.info("Error: Invalid assignee choice.")
                                 continue  # Restart the loop to get input again
                         else:
                             task_manager.save_history(selected_project["project_id"], "Assignees Removed", selected_task["title"], 
@@ -1009,12 +1055,14 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     elif assignee_choice == '3':
                         break  # Exit the loop and return to the main menu
                     else:
-                        print("Invalid choice.")
+                        print("Error: Invalid choice.")
+                        logging.info("Error: Invalid choice.")
                         input("Press Enter to continue...")
                         clear_screen()
                         continue  # Restart the loop to get valid input
             else:
-                print("You are not allowed to change this section.")
+                print("Error: You are not allowed to change this section.")
+                logging.info("Error: You are not allowed to change this section.")
                 input("Press Enter to continue...")
                 return
 
@@ -1031,11 +1079,13 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     input("Press Enter to continue...")
                     clear_screen()
                 else:
-                    print("Deadline remains unchanged.")
+                    print("Error: Deadline remains unchanged.")
+                    logging.info("Error: Deadline remains unchanged.")
                     input("Press Enter to continue...")
                     clear_screen()
             else:
-                print("You are not allowed to change this section.")
+                print("Error: You are not allowed to change this section.")
+                logging.info("Error: You are not allowed to change this section.")
                 input("Press Enter to continue...")
                 clear_screen()
                 return
@@ -1065,11 +1115,14 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     logger.info(f"Priority of task {selected_task} changed to {new_priority}")
                 elif new_priority_choice == "":
                     print("Keeping current priority.")
+                    logging.info("Keeping current priority.")
                 else:
-                    print("Invalid priority choice. Please choose a number between 1 and 4.")
+                    print("Error: Invalid priority choice. Please choose a number between 1 and 4.")
+                    logging.info("Error: Invalid priority choice.")
 
             else:
-                print("You are not allowed to change this section.")
+                print("Error: You are not allowed to change this section.")
+                logging.info("Error: You are not allowed to change this section.")
         
             input("Press Enter to continue...")
             clear_screen()
@@ -1102,11 +1155,14 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     logger.info(f"Status of task {selected_task} changed to {new_status}")
                 elif new_status_choice == "":
                     print("Keeping current status.")
+                    logging.info("Keeping current status.")
                 else:
-                    print("Invalid status choice. Please choose a number between 1 and 5.")
+                    print("Error: Invalid status choice. Please choose a number between 1 and 5.")
+                    logging.info("Error: Invalid status choice.")
 
             else:
-                print("You are not allowed to change this section.")
+                print("Error: You are not allowed to change this section.")
+                logging.info("Error: You are not allowed to change this section.")
         
             input("Press Enter to continue...")
             clear_screen()
@@ -1122,7 +1178,8 @@ def edit_task(username, selected_project, selected_task, task_manager):
                 comment_choice = input("Choose an option: ")
 
                 if comment_choice not in ['1', '2', '3']:
-                    print("Invalid option. Please choose a valid option.")
+                    print("Error: Invalid option. Please choose a valid option.")
+                    logging.info("Error: Invalid option. Please choose a valid option.")
                     input("Press Enter to continue...")
                     continue
 
@@ -1131,7 +1188,8 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     try:
                         comment_text = input("Enter your comment: ")
                         if not comment_text:
-                            print("Comment cannot be empty.")
+                            print("Error: Comment cannot be empty.")
+                            logging.info("Error: Comment cannot be empty.")
                             input("Press Enter to continue...")
                             continue
                         selected_task["comments"].append({"username": username, "comment": comment_text})
@@ -1143,13 +1201,15 @@ def edit_task(username, selected_project, selected_task, task_manager):
                         clear_screen()
                     except Exception as e:
                         print(f"Error adding comment: {e}")
+                        logging.info(f"Error adding comment: {e}")
                         input("Press Enter to continue...")
                         clear_screen()
 
                 elif comment_choice == '2':
                     clear_screen()
                     if not selected_task["comments"]:
-                        print("No comments to remove.")
+                        print("Error: No comments to remove.")
+                        logger.info("Error: No comments to remove.")
                         input("Press Enter to continue...")
                         continue
 
@@ -1184,18 +1244,22 @@ def edit_task(username, selected_project, selected_task, task_manager):
                                         break  # Return to the main comment menu
                                     except Exception as e:
                                         print(f"Error removing comment: {e}")
+                                        logging.info(f"Error removing comment: {e}")
                                         input("Press Enter to continue...")
                                         clear_screen()
                                 else:
-                                    print("You do not have permission to remove this comment.")
+                                    print("Error: You do not have permission to remove this comment.")
+                                    logging.info("Error: You do not have permission to remove this comment.")
                                     input("Press Enter to continue...")
                                     clear_screen()
                             else:
-                                print("Invalid comment number.")
+                                print("Error: Invalid comment number.")
+                                logging.info("Error: Invalid comment number.")
                                 input("Press Enter to continue...")
                                 clear_screen()
                         else:
-                            print("Invalid input. Please enter a valid comment number.")
+                            print("Error: Invalid input. Please enter a valid comment number.")
+                            logging.info("Error: Invalid input.")
                             input("Press Enter to continue...")
                             clear_screen()
                 elif comment_choice == '3':
@@ -1208,14 +1272,16 @@ def edit_task(username, selected_project, selected_task, task_manager):
             logger.info(f"Task {selected_task} saved and exited.")
             return selected_task
         else:
-            print("Invalid choice. Please try again.")
+            print("Error: Invalid choice. Please try again.")
+            logging.info("Error: Invalid choice.")
             input("Press Enter to continue...")
             clear_screen()
     
 
 def delete_task(username, selected_project):
     if selected_project['owner'] != username:
-        print("You do not have permission to delete tasks for this project.")
+        print("Error: You do not have permission to delete tasks for this project.")
+        logging.info("Error: You do not have permission to delete tasks for this project.")
         input("Press Enter to continue...")
         clear_screen()
         return
@@ -1231,7 +1297,8 @@ def delete_task(username, selected_project):
     
     # Check if the user has any tasks in the project
     if not user_tasks:
-        print("You don't have any tasks in your project.")
+        print("Error: You don't have any tasks in your project.")
+        logging.info("Error: You don't have any tasks in your project.")
         input("Press Enter to continue...")
         return
 
@@ -1242,7 +1309,8 @@ def delete_task(username, selected_project):
     # Prompt user to select a task
     selected_task_index = input("Enter the number of the task to delete: ")
     if not selected_task_index.isdigit() or int(selected_task_index) < 1 or int(selected_task_index) > len(user_tasks):
-        print("Invalid task selection. Please enter a valid task number.")
+        print("Error: Invalid task selection. Please enter a valid task number.")
+        logging.info("Error: Invalid task selection.")
         input("Press Enter to continue...")
         return
 
@@ -1250,7 +1318,8 @@ def delete_task(username, selected_project):
 
     confirm = input(f"Are you sure you want to delete task '{selected_task['title']}'? (y/n): ")
     if confirm.lower() != 'y':
-        print("Task deletion canceled.")
+        print("Error: Task deletion canceled.")
+        logging.info("Error: Task deletion canceled.")
         input("Press Enter to continue...")
         return
 
@@ -1269,6 +1338,7 @@ def view_tasks(selected_project, task_manager, username):
 
     if not isinstance(tasks, dict):
         print("Error: Loaded tasks are not in the expected format.")
+        logging.info("Error: Loaded tasks are not in the expected format.")
         return
 
     # Filter tasks based on project_id
@@ -1276,6 +1346,7 @@ def view_tasks(selected_project, task_manager, username):
 
     if not project_tasks:
         print("Error: No tasks in this project.")
+        logging.info("Error: No tasks in this project.")
         input("Press Enter to continue...")
         return
 
@@ -1322,9 +1393,11 @@ def view_tasks(selected_project, task_manager, username):
             if task_choice in label_to_number.values():
                 break
             else:
-                print("Invalid number. Please enter a valid task number.")
+                print("Error: Invalid number. Please enter a valid task number.")
+                logging.info("Error: Invalid number.")
         except ValueError:
-            print("Invalid input. Please enter a number.")
+            print("Error: Invalid input. Please enter a number.")
+            logging.info("Error: Invalid input.")
 
     # Get the selected task based on the user's choice
     selected_label = next(label for label, number in label_to_number.items() if number == task_choice)
@@ -1364,6 +1437,7 @@ def view_tasks(selected_project, task_manager, username):
                 input("Press Enter to continue...")
             except KeyError as e:
                 print(f"Error: Missing key {e}")
+                logging.info(f"Error: Missing key {e}")
                 input("Press Enter to continue...")
         elif menu_choice == '2':
             selected_task = edit_task(username, selected_project, selected_task, task_manager)  # Update selected_task with the returned value
@@ -1374,7 +1448,8 @@ def view_tasks(selected_project, task_manager, username):
         elif menu_choice == '4':
             break
         else:
-            print("Invalid choice. Please try again.")
+            print("Error: Invalid choice. Please try again.")
+            logging.info("Error: Invalid choice.")
 
 
 
@@ -1401,7 +1476,8 @@ def tasks_menu(username, selected_project):
         elif choice == '4':
             break
         else:
-            print("Invalid choice. Please try again.")
+            print("Error: Invalid choice. Please try again.")
+            logging.info("Error: Invalid choice.")
             input("Press Enter to continue...")
             clear_screen()
             continue
@@ -1426,7 +1502,8 @@ def edit_project_menu(username, selected_project):
             clear_screen()
             break
         else:
-            print("Invalid choice. Please try again.")
+            print("Error: Invalid choice. Please try again.")
+            logging.info("Error: Invalid choice.")
             input("Press Enter to continue...")
             clear_screen()
             continue
@@ -1464,7 +1541,8 @@ def account(username):
         elif choice == '5':
             break
         else:
-            print("Invalid choice. Please try again.")
+            print("Error: Invalid choice. Please try again.")
+            logging.info("Error: Invalid choice.")
             input("Press Enter to continue...")
             clear_screen()
             continue
@@ -1494,7 +1572,8 @@ def main():
             print("[blue]Good luck[/blue] ")
             exit()
         else:
-            print("Invalid choice. Please enter 1, 2, or 3.")
+            print("Error: Invalid choice. Please enter 1, 2, or 3.")
+            logging.info("Error: Invalid choice.")
             input("Press Enter to continue...")
             clear_screen()
 
