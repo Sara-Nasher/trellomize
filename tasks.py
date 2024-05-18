@@ -5,7 +5,7 @@ import json
 from rich import print
 from typing import List
 import os
-import datetime
+from datetime import datetime
 from enum import Enum
 import uuid
 import re
@@ -93,26 +93,6 @@ class TaskManager:
         with open(self.history_file, "w") as file:
             json.dump(history, file, indent=4)
 
-    def create_task(self, username, project_id, label, title, description, deadline, assignees, priority=Priority.LOW,
-                    status=Status.BACKLOG, comments=None):
-        task_id = str(uuid.uuid4())
-        task = {
-            "task_id": task_id,
-            "project_id": project_id,
-            "label": label,
-            "title": title,
-            "description": description,
-            "deadline": deadline.isoformat(),
-            "assignees": assignees,
-            "priority": priority.value,
-            "status": status.value,
-            "comments": [{"username": username, "comment": comments}] if comments else [],
-            "created_at": datetime.datetime.now().isoformat()
-        }
-        self.tasks[task_id] = task
-        self.save_tasks(self.tasks)
-        self.save_history(project_id, "Task Created", label, title, username, datetime.datetime.now())
-        return task
 
     def update_task(self, task_id, updated_task):
         if task_id in self.tasks:
@@ -122,6 +102,28 @@ class TaskManager:
             logger.info(f"Task {task_id} updated successfully.")
         else:
             print("Error: Task not found.")
+
+    def view_task_history(self, selected_task):
+        try:
+            with open(self.history_file, "r") as file:
+                history = json.load(file)
+                selected_task_history = [change for change in history if change["project_id"] == selected_task["project_id"]]
+                for change in selected_task_history:
+                    print(f"Action: {change['action']}")
+                    print(f"Field Name: {change['field_name']}")
+                    print(f"New Value: {change['new_value']}")
+                    print(f"Changer: {change['changer']}")
+                
+                    timestamp = change.get('timestamp')
+                    if timestamp:
+                        formatted_time = datetime.fromisoformat(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+                    else:
+                        formatted_time = 'N/A'
+                
+                    print(f"Timestamp: {formatted_time}")
+                    print()
+        except FileNotFoundError:
+            print("No history available for this task.")
 
 class User:
     def __init__(self, email, username, password, active=True):
@@ -288,20 +290,38 @@ class ProjectManager:
         input("Press Enter to continue...")
         clear_screen()
 
-    def remove_member_from_project(self, project_id, member, username):
+    def remove_member_from_project(self, project_id, username):
         projects = self.load_projects()
         if project_id in projects:
             project = projects[project_id]
             if project["owner"] == username:
-                if "members" in project and member in project["members"]:
-                    project["members"].remove(member)
-                    print(f"Member '{member}' removed from project '{project['title']}' successfully.")
-                    logger.info(f"Member '{member}' removed from project '{project['title']}' successfully.")
-                    self.save_projects(projects)
-                    input("Press Enter to continue...")
-                    clear_screen()
+                if "members" in project:
+                    print("Members of project:")
+                    for index, member in enumerate(project["members"], 1):
+                        print(f"{index}. {member}")
+                    while True:
+                        choice = input("Enter the number of the member you want to remove: ")
+                        if not choice.isdigit() or int(choice) < 1 or int(choice) > len(project["members"]):
+                            print("[bold red]Invalid choice! Please enter a valid number.[/bold red]")
+                            input("Press Enter to continue...")
+                            clear_screen()
+                            print("Members of project:")
+                            for index, member in enumerate(project["members"], 1):
+                                print(f"{index}. {member}")
+                            continue
+                        member_to_remove = project["members"][int(choice) - 1]
+                        confirm = input(f"Are you sure you want to remove '{member_to_remove}' from project '{project['title']}'? (y/n): ")
+                        if confirm.lower() == 'y':
+                            project["members"].remove(member_to_remove)
+                            self.save_projects(projects)
+                            logger.info(f"Member '{member_to_remove}' removed from project '{project['title']}' successfully.")
+                            print("Member removed successfully!")
+                            return True
+                        else:
+                            print("Removal canceled.")
+                            return False
                 else:
-                    print(f"Member '{member}' is not a member of project '{project['title']}'")
+                    print("This project has no members.")
                     input("Press Enter to continue...")
                     clear_screen()
             else:
@@ -312,7 +332,6 @@ class ProjectManager:
             print(f"Project with ID '{project_id}' not found.")
             input("Press Enter to continue...")
             clear_screen()
-
 
     def view_projects(self, username):
         projects = self.load_projects()
@@ -1274,7 +1293,8 @@ def view_tasks(selected_project, task_manager, username):
         print("Task Menu:")
         print("1. View Task Details")
         print("2. Edit Task")
-        print("3. Exit")
+        print("3. View Task History")
+        print("4. Exit")
 
         menu_choice = input("Choose an option: ")
 
@@ -1305,11 +1325,13 @@ def view_tasks(selected_project, task_manager, username):
         elif menu_choice == '2':
             selected_task = edit_task(username, selected_project, selected_task, task_manager)  # Update selected_task with the returned value
         elif menu_choice == '3':
+            clear_screen()
+            task_manager.view_task_history(selected_task)
+            input("Press Enter to continue...")
+        elif menu_choice == '4':
             break
-
         else:
             print("Invalid choice. Please try again.")
-
 
 
 
@@ -1351,8 +1373,8 @@ def edit_project_menu(username, selected_project):
             member = input("Enter the username of the member you want to add: ")
             project_manager.add_member_to_project(selected_project['project_id'], member, username)
         elif choice == '2':
-            member = input("Enter the username of the member you want to remove: ")
-            project_manager.remove_member_from_project(selected_project['project_id'], member, username)
+            project_manager.remove_member_from_project(selected_project['project_id'], username)
+            input()
         elif choice == '3':
             tasks_menu(username, selected_project)
         elif choice == '4':
