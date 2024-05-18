@@ -247,7 +247,7 @@ class ProjectManager:
             if confirm.lower() == 'y':
                 del projects[project_to_delete['project_id']]
                 self.save_projects(projects)
-                logger.info(f"{owner} deleted project {title} successfully.")
+                logger.info(f"{owner} deleted project {project_to_delete['title']} successfully.")
                 print("Project deleted successfully!")
                 return True
             else:
@@ -678,9 +678,11 @@ def get_valid_datetime(prompt):
         except ValueError:
             print("Invalid date format. Please enter the date and time in the format YYYY-MM-DD HH:MM.")
 
-
 def create_task(username, selected_project):
-    if selected_project['owner']!= username:
+    project_manager = ProjectManager()
+    projects = project_manager.load_projects()
+
+    if selected_project['owner'] != username:
         print("You do not have permission to create tasks for this project.")
         input("Press Enter to continue...")
         clear_screen()
@@ -688,10 +690,11 @@ def create_task(username, selected_project):
 
     task_manager = TaskManager()
     project_id = selected_project["project_id"]
+
     while True:
         label = input("Enter the task label: ")
         if label.strip():
-            break  # Exit loop if label is provided
+            break
         else:
             print("Task label cannot be empty. Please enter a label.")
             input("Press Enter to continue...")
@@ -699,8 +702,6 @@ def create_task(username, selected_project):
 
     title = input("Enter the task title: ")
     description = input("Enter the task description: ")
-    
-
     start_datetime = datetime.datetime.now()
     end_datetime = get_valid_datetime("Enter the task deadline (YYYY-MM-DD HH:MM): ")
     if not end_datetime:
@@ -708,7 +709,12 @@ def create_task(username, selected_project):
     elif end_datetime < start_datetime:
         print("Invalid deadline. It should be after the start time.")
         return
-    UserManager().display_project_members(selected_project)
+
+    print("Members in the project:")
+    members = projects[project_id].get('members', [])
+    for idx, member in enumerate(members, 1):
+        print(f"{idx}. {member}")
+
     member_choices = input("Enter the member numbers (comma-separated): ")
     selected_members = []
     if member_choices:
@@ -721,9 +727,10 @@ def create_task(username, selected_project):
     else:
         print("No members selected for the task. You can add members later.")
         proceed = input("Do you want to proceed without assigning any members? (y/n): ")
-        if proceed.lower()!= 'y':
+        if proceed.lower() != 'y':
             print("Task creation cancelled.")
             return
+
 
     print("Select Priority:")
     print("1. CRITICAL")
