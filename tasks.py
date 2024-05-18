@@ -10,8 +10,14 @@ from enum import Enum
 import uuid
 import re
 import hashlib
+import logging
 from rich.box import SIMPLE
 
+logging.basicConfig(filename='Account/logfile.log',level=logging.INFO)
+logger = logging.getLogger()
+
+fileHandler=logging.FileHandler('logfile.log')
+logger.addHandler(fileHandler)
 
 class Priority(Enum):
     CRITICAL = "CRITICAL"
@@ -113,6 +119,7 @@ class TaskManager:
             self.tasks[task_id].update(updated_task)
             self.save_tasks(self.tasks)
             print("Task updated successfully.")
+            logger.info(f"Task {task_id} updated successfully.")
         else:
             print("Error: Task not found.")
 
@@ -150,6 +157,7 @@ class UserManager:
         users = self.load_users()
         users[username] = {"email": email, "username": username, "password": password, "active": True}
         self.save_users(users)
+        logger.info(f"user {username} sigend up successfully.")
         return User(email, username, password)
 
     def get_user_projects(self, username):
@@ -208,6 +216,7 @@ class ProjectManager:
 
         # If all checks pass, create the project
         print("Project created successfully!")
+        logger.info(f"{owner} created project {title} successfully.")
         input("Press Enter to continue...")
         clear_screen()
         projects[project_id] = {"title": title, "project_id": project_id, "owner": owner}
@@ -238,6 +247,7 @@ class ProjectManager:
             if confirm.lower() == 'y':
                 del projects[project_to_delete['project_id']]
                 self.save_projects(projects)
+                logger.info(f"{owner} deleted project {title} successfully.")
                 print("Project deleted successfully!")
                 return True
             else:
@@ -257,6 +267,7 @@ class ProjectManager:
                     if member not in project["members"]:
                         project["members"].append(member)
                         print(f"Member '{member}' added to project '{project['title']}' successfully.")
+                        logger.info(f"Member '{member}' added to project '{project['title']}' successfully.")
                         self.save_projects(projects)
                     else:
                         print(f"Member '{member}' is already a member of project '{project['title']}'.")
@@ -285,6 +296,7 @@ class ProjectManager:
                 if "members" in project and member in project["members"]:
                     project["members"].remove(member)
                     print(f"Member '{member}' removed from project '{project['title']}' successfully.")
+                    logger.info(f"Member '{member}' removed from project '{project['title']}' successfully.")
                     self.save_projects(projects)
                     input("Press Enter to continue...")
                     clear_screen()
@@ -818,6 +830,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                                               new_label, username, datetime.datetime.now())
 
                     print("label changed successfully.")
+                    logger.info(f"label of task {selected_task} changed to {new_label}")
                     input("Press Enter to continue...")
                     clear_screen()
                 else:
@@ -838,6 +851,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Task Title Changed", selected_task["title"],
                                               new_title, username, datetime.datetime.now())
                     print("Title changed successfully.")
+                    logger.info(f"title of task {selected_task} changed to {new_title}")
                     input("Press Enter to continue...")
                     clear_screen()
                 else:
@@ -845,6 +859,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Task Title Removed", selected_task["title"],
                                               selected_task["title"], username, datetime.datetime.now())
                     print("Title removed successfully.")
+                    logger.info(f"Title of task {selected_task} removed successfully.")
                     input("Press Enter to continue...")
             else:
                 print("You are not allowed to change this section.")
@@ -859,6 +874,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Task Description Changed", selected_task["title"],
                                               new_description, username, datetime.datetime.now())
                     print("Description changed successfully.")
+                    logger.info(f"Description of task {selected_task} changed to {new_description}")
                     input("Press Enter to continue...")
                     clear_screen()
                 else:
@@ -866,6 +882,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Task Description Removed", selected_task["title"],
                                               selected_task["description"], username, datetime.datetime.now())
                     print("Description removed successfully.")
+                    logger.info(f"Description of task {selected_task} removed successfully.")
                     input("Press Enter to continue...")
                     clear_screen()
             else:
@@ -907,6 +924,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                             task_manager.save_history(selected_project["project_id"], "Assignees Added", selected_task["title"],
                                                         ', '.join(selected_task["assignees"]), username, datetime.datetime.now())
                             print("Assignees added successfully.")
+                            logger.info(f"Assignees {selected_assignees} added to {selected_task} successfully.")
                             input("Press Enter to continue...")
                             clear_screen()
                             break  # Exit the loop after successful input
@@ -936,6 +954,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                             task_manager.save_history(selected_project["project_id"], "Assignees Removed", selected_task["title"], 
                                                      ', '.join(removed_assignees), username, datetime.datetime.now())
                             print("Assignees removed successfully.")
+                            logger.info(f"Assignees {selected_assignees} removed from {selected_task} successfully.")
                             input("Press Enter to continue...")
                             break  # Exit the loop after successful input
                 
@@ -957,6 +976,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Deadline Changed", selected_task["title"], 
                                       selected_task["deadline"], username, datetime.datetime.now())
                     print("Deadline changed successfully.")
+                    logger.info(f"Deadline of {selected_task} changed to {new_deadline}.")
                     input("Press Enter to continue...")
                     clear_screen()
                 else:
@@ -990,6 +1010,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Priority Changed", selected_task["title"], 
                               new_priority.name, username, datetime.datetime.now())
                     print("Priority changed successfully.")
+                    logger.info(f"Priority of task {selected_task} changed to {new_priority}")
                 elif new_priority_choice == "":
                     print("Keeping current priority.")
                 else:
@@ -1025,6 +1046,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                     task_manager.save_history(selected_project["project_id"], "Status Changed", selected_task["title"], 
                               new_status.name, username, datetime.datetime.now())
                     print("Status changed successfully.")
+                    logger.info(f"Status of task {selected_task} changed to {new_status}")
                 elif new_status_choice == "":
                     print("Keeping current status.")
                 else:
@@ -1059,6 +1081,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                         task_manager.save_history(selected_project["project_id"], "Comment Added", selected_task["title"], 
                                                   comment_text, username, datetime.datetime.now())
                         print("Comment added successfully.")
+                        logger.info(f"{username} added a comment to {selected_task}")
                         input("Press Enter to continue...")
                         clear_screen()
                     except Exception as e:
@@ -1095,6 +1118,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
                                             datetime.datetime.now()
                                         )
                                         print("Comment removed successfully.")
+                                        logger.info(f"{comment_to_remove} removed successfully.")
                                         input("Press Enter to continue...")
                                         clear_screen()
                                         break  # Return to the main comment menu
@@ -1112,6 +1136,7 @@ def edit_task(username, selected_project, selected_task, task_manager):
         elif choice == '9':
             task_manager.update_task(selected_task['task_id'], selected_task)
             print("Task saved and exited.")
+            logger.info(f"Task {selected_task} saved and exited.")
             return selected_task
         else:
             print("Invalid choice. Please try again.")
@@ -1165,6 +1190,7 @@ def delete_task(username, selected_project):
     task_manager.save_tasks(task_manager.tasks)
     task_manager.save_history(project_id, "Task Deleted", selected_task["title"], selected_task['title'], username, datetime.datetime.now())
     print("Task deleted successfully.")
+    logger.info(f"Task {selected_task} deleted successfully. ")
     input("Press Enter to continue...")
 
 def view_tasks(selected_project, task_manager, username):
