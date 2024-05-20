@@ -24,8 +24,6 @@ def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 
-users_file = "Account/account.json"
-
 class User:
     def __init__(self, email, username, password, active=True):
         self.email = email
@@ -70,7 +68,7 @@ class UserManager:
             for index, member in enumerate(members, 1):
                 print(f"{index}. {member}")
         else:
-            print("Erorr: No members found for this project.")
+            print("[bold red]Erorr: No members found for this project.[/bold red]")
             logger.info(f"Erorr: No members found project {project}.")
     
     def print_sign_up(self):
@@ -327,10 +325,10 @@ class UserManager:
             elif choice == '2':
                 self.login()
             elif choice == '3':
-                print("[blue]Good luck[/blue] ")
+                console.print("Good luck", justify='left', style="blink bold blue")
                 exit()
             else:
-                print("Error: Invalid choice. Please enter 1, 2, or 3.")
+                print("[bold red]Error: Invalid choice. Please enter 1, 2, or 3.[/bold red]")
                 logging.info("Error: Invalid choice.")
                 input("Press Enter to continue...")
                 clear_screen()
@@ -375,14 +373,14 @@ class ProjectManager:
         # Check if the project with the same title already exists for the owner
         for proj in projects.values():
             if proj["title"] == title and proj["owner"] == owner:
-                print("Erorr: [bold red]You already have a project with the same title! Please choose a different title.[/bold red]")
+                print("[bold red]Erorr: You already have a project with the same title! Please choose a different title.[/bold red]")
                 logging.error(f"You already have a project with the same title: {title} owned by {owner}!")
                 input("Press Enter to continue...")
                 clear_screen()
                 return None
 
         # If all checks pass, create the project
-        print("Project created successfully!")
+        print("[bold green]Project created successfully![/bold green]")
         logger.info(f"{owner} created project {title} successfully.")
         input("Press Enter to continue...")
         clear_screen()
@@ -417,13 +415,13 @@ class ProjectManager:
                 del projects[project_to_delete['project_id']]
                 self.save_projects(projects)
                 logger.info(f"{owner} deleted project {project_to_delete['title']} successfully.")
-                print("Project deleted successfully!")
+                print("[bold green]Project deleted successfully![/bold green]")
                 input("Press Enter to continue...")
                 clear_screen()
                 return True
             else:
                 print("Deletion canceled.")
-                logging.info(f"Erorr: project {project_to_delete['title']} Deletion canceled.")
+                logging.info(f"[bold red]Erorr: project {project_to_delete['title']} Deletion canceled.[/bold red]")
                 input("Press Enter to continue...")
                 clear_screen()
                 return False
@@ -441,13 +439,13 @@ class ProjectManager:
                     project["members"] = project.get("members", [])
                     if member not in project["members"]:
                         project["members"].append(member)
-                        print(f"Member '{member}' added to project '{project['title']}' successfully.")
+                        print(f"[bold green]Member '{member}' added to project '{project['title']}' successfully.[/bold green]")
                         logger.info(f"Member '{member}' added to project '{project['title']}' successfully.")
                         self.save_projects(projects)
                         input("Press Enter to continue...")
                         clear_screen()
                     else:
-                        print(f"Erorr: Member '{member}' is already a member of project '{project['title']}'.")
+                        print(f"[bold red]Erorr: Member '{member}' is already a member of project '{project['title']}'.[/bold red]")
                         logging.info(f"Erorr: Member '{member}' is already a member of project '{project['title']}'.")
                         input("Press Enter to continue...")
                         clear_screen()
@@ -462,7 +460,7 @@ class ProjectManager:
                 input("Press Enter to continue...")
                 clear_screen()
         else:
-            print(f"Erorr: Project with ID '{project_id}' not found.")
+            print(f"[bold red]Erorr: Project with ID '{project_id}' not found.[/bold red]")
             logging.info(f"Erorr: Project with ID '{project_id}' not found.")
             input("Press Enter to continue...")
             clear_screen()
@@ -493,17 +491,17 @@ class ProjectManager:
                             project["members"].remove(member_to_remove)
                             self.save_projects(projects)
                             logger.info(f"Member '{member_to_remove}' removed from project '{project['title']}' successfully.")
-                            print("Member removed successfully!")
+                            print("[bold green]Member removed successfully![/bold green]")
                             input("Press Enter to continue...")
                             clear_screen()
                             return True
                         else:
-                            print("Erorr: Remove canceled.")
+                            print("[bold red]Erorr: Remove canceled.[/bold red]")
                             logging.info("Erorr: Remove canceled.")
                             clear_screen()
                             return False
                 else:
-                    print("Erorr: This project has no members.")
+                    print("[bold red]Erorr: This project has no members.[/bold red]")
                     logging.info("Erorr: This project has no members.")
                     clear_screen()
             else:
@@ -512,8 +510,8 @@ class ProjectManager:
                 input("Press Enter to continue...")
                 clear_screen()
         else:
-            print(f"Erorr: Project with ID '{project_id}' not found.")
-            logging.info(f"Erorr: Project with ID '{project_id}' not found.")
+            print(f"[bold red]Erorr: Project with ID '{project_id}' not found.[/bold red]")
+            logging.info(f"[bold red]Erorr: Project with ID '{project_id}' not found.[/bold red]")
             input("Press Enter to continue...")
             clear_screen()
 
@@ -561,14 +559,14 @@ class ProjectManager:
                 if 0 <= project_choice < len(owner_projects):
                     break
                 else:
-                    print("Error: Invalid project choice")
+                    print("[bold red]Error: Invalid project choice.[/bold red]")
                     logging.info("Error: Invalid project choice")
                     input("Press Enter to continue...")
                     clear_screen()
                     for index, project in enumerate(owner_projects, 1):
                         print(f"{index}. {project['title']}")
             else:
-                print("Error: Please enter a valid project number.")
+                print("[bold red]Error: Please enter a valid project number.[/bold red]")
                 logging.info("Error: Invalid project number")
                 input("Press Enter to continue...")
                 clear_screen()
@@ -602,7 +600,7 @@ class ProjectManager:
                 if 0 <= project_choice < len(person_projects):
                     break
                 else:
-                    print("Error: Invalid project choice")
+                    print("[bold red]Error: Invalid project choice[/bold red]")
                     logging.info("Error: Invalid project choice")
                     input("Press Enter to continue...")
                     clear_screen()
@@ -630,18 +628,21 @@ class ProjectManager:
             print("4. Exit")
             choice = input("Choose an option: ")
             if choice == '1':
+                clear_screen()
                 member = input("Enter the username of the member you want to add: ")
                 self.add_member_to_project(selected_project['project_id'], member, username)
             elif choice == '2':
+                clear_screen()
                 self.remove_member_from_project(selected_project['project_id'], username)
             elif choice == '3':
+                clear_screen()
                 task_manager.tasks_menu(username, selected_project)
             elif choice == '4':
                 clear_screen()
                 break
 
             else:
-                print("Invalid choice. Please try again.")
+                print("[bold red]Invalid choice. Please try again.[/bold red]")
                 input("Press Enter to continue...")
 
     def account(self, username):
@@ -676,7 +677,7 @@ class ProjectManager:
             elif choice == '5':
                 break
             else:
-                print("Error: Invalid choice. Please try again.")
+                print("[bold red]Error: Invalid choice. Please try again.[/bold red]")
                 logging.info("Error: Invalid choice.")
                 input("Press Enter to continue...")
                 clear_screen()
@@ -766,7 +767,7 @@ class TaskManager:
         if task_id in self.tasks:
             self.tasks[task_id].update(updated_task)
             self.save_tasks(self.tasks)
-            print("Task updated successfully.")
+            print("[bold green]Task updated successfully.[/bold green]")
             logger.info(f"Task {task_id} updated successfully.")
         else:
             print("Error: Task not found.")
@@ -780,12 +781,12 @@ class TaskManager:
             try:
                 datetime_obj = datetime.strptime(datetime_input, "%Y-%m-%d %H:%M")
                 if datetime_obj < datetime.now():
-                    print("Error: Invalid date and time. It should be in the future.")
+                    print("[bold red]Error: Invalid date and time. It should be in the future.[/bold red]")
                     logging.info("Error: Invalid date and time. It should be in the future.")
                     continue
                 return datetime_obj
             except ValueError:
-                print("Error: Invalid date format. Please enter the date and time in the format YYYY-MM-DD HH:MM.")
+                print("[bold red]Error: Invalid date format. Please enter the date and time in the format YYYY-MM-DD HH:MM.[/bold red]")
                 logging.info("Error: Invalid date format. Please enter the date and time in the format YYYY-MM-DD HH:MM.")
 
     def create_task(self, username, selected_project):
@@ -818,7 +819,7 @@ class TaskManager:
         if not end_datetime:
             end_datetime = start_datetime + timedelta(days=1)
         elif end_datetime < start_datetime:
-            print("Error: Invalid deadline. It should be after the start time.")
+            print("[bold red]Error: Invalid deadline. It should be after the start time.[/bold red]")
             logging.info("Error: Invalid deadline. It should be after the start time.")
             return
 
@@ -844,7 +845,7 @@ class TaskManager:
                 if choice.isdigit() and 0 < int(choice) <= len(members):
                     selected_members.append(members[int(choice) - 1])
                 else:
-                    print("Error: Invalid member choice.")
+                    print("[bold red]Error: Invalid member choice.[/bold red]")
                     logging.info("Error: Invalid member choice.")
                     invalid_choice = True
                     break
@@ -871,7 +872,7 @@ class TaskManager:
                 selected_priority = Priority.CRITICAL
                 break
             else:
-                print("Error: Invalid input. Please choose a priority between 1 and 4.")
+                print("[bold red]Error: Invalid input. Please choose a priority between 1 and 4.[/bold red]")
                 logging.info("Error: Invalid input.")
 
         print(f"Selected priority: {selected_priority}")
@@ -898,7 +899,7 @@ class TaskManager:
                 selected_status = Status.BACKLOG
                 break
             else:
-                print("Error: Invalid input. Please choose a status between 1 and 5.")
+                print("[bold red]Error: Invalid input. Please choose a status between 1 and 5.[/bold red]")
                 logging.info("Error: Invalid input.")
 
         print(f"Selected status: {selected_status}")
@@ -924,7 +925,7 @@ class TaskManager:
         self.save_tasks(tasks)
         self.save_history(project_id, "Task Created", label, title, username, datetime.now())
 
-        print("Task created successfully!")
+        print("[bold green]Task created successfully![/bold green]")
         logging.info("Task created successfully!")
         input("Press Enter to continue...")
         clear_screen()
@@ -954,7 +955,7 @@ class TaskManager:
                         self.save_history(selected_project["project_id"], "Task label Changed", selected_task["title"],
                                               new_label, username, datetime.now())
 
-                        print("label changed successfully.")
+                        print("[bold green]label changed successfully.[/bold green]")
                         logger.info(f"label of task {selected_task} changed to {new_label}")
                         input("Press Enter to continue...")
                         clear_screen()
@@ -978,7 +979,7 @@ class TaskManager:
                         selected_task["title"] = new_title
                         self.save_history(selected_project["project_id"], "Task Title Changed", selected_task["title"],
                                               new_title, username, datetime.now())
-                        print("Title changed successfully.")
+                        print("[bold green]Title changed successfully.[/bold green]")
                         logger.info(f"title of task {selected_task} changed to {new_title}")
                         input("Press Enter to continue...")
                         clear_screen()
@@ -986,7 +987,7 @@ class TaskManager:
                         selected_task["title"] = ""
                         self.save_history(selected_project["project_id"], "Task Title Removed", selected_task["title"],
                                               selected_task["title"], username, datetime.now())
-                        print("Title removed successfully.")
+                        print("[bold green]Title removed successfully.[/bold green]")
                         logger.info(f"Title of task {selected_task} removed successfully.")
                         input("Press Enter to continue...")
                 else:
@@ -1003,7 +1004,7 @@ class TaskManager:
                         selected_task["description"] = new_description
                         self.save_history(selected_project["project_id"], "Task Description Changed", selected_task["title"],
                                               new_description, username, datetime.now())
-                        print("Description changed successfully.")
+                        print("[bold green]Description changed successfully.[/bold green]")
                         logger.info(f"Description of task {selected_task} changed to {new_description}")
                         input("Press Enter to continue...")
                         clear_screen()
@@ -1011,7 +1012,7 @@ class TaskManager:
                         selected_task["description"] = ""
                         self.save_history(selected_project["project_id"], "Task Description Removed", selected_task["title"],
                                               selected_task["description"], username, datetime.now())
-                        print("Description removed successfully.")
+                        print("[bold green]Description removed successfully.[/bold green]")
                         logger.info(f"Description of task {selected_task} removed successfully.")
                         input("Press Enter to continue...")
                         clear_screen()
@@ -1052,14 +1053,14 @@ class TaskManager:
                                 if 0 <= index < len(available_assignees):
                                     selected_task["assignees"].append(available_assignees[index])
                                 else:
-                                    print("Error: Invalid assignee choice.")
+                                    print("[bold red]Error: Invalid assignee choice.[/bold red]")
                                     logging.info("Error: Invalid assignee choice.")
                                     input("Press Enter to continue...")
                                     continue  # Restart the loop to get input again
                             else:
                                 self.save_history(selected_project["project_id"], "Assignees Added", selected_task["title"],
                                                         ', '.join(selected_task["assignees"]), username, datetime.now())
-                                print("Assignees added successfully.")
+                                print("[bold green]Assignees added successfully.[/bold green]")
                                 logger.info(f"Assignees {selected_assignees} added to {selected_task} successfully.")
                                 input("Press Enter to continue...")
                                 clear_screen()
@@ -1086,13 +1087,13 @@ class TaskManager:
                                 if 0 <= index < len(selected_task["assignees"]):
                                     removed_assignees.append(selected_task["assignees"].pop(index))
                                 else:
-                                    print("Error: Invalid assignee choice.")
+                                    print("[bold red]Error: Invalid assignee choice.[/bold red]")
                                     logging.info("Error: Invalid assignee choice.")
                                     continue  # Restart the loop to get input again
                             else:
                                 self.save_history(selected_project["project_id"], "Assignees Removed", selected_task["title"], 
                                                      ', '.join(removed_assignees), username, datetime.now())
-                                print("Assignees removed successfully.")
+                                print("[bold green]Assignees removed successfully.[/bold green]")
                                 logger.info(f"Assignees {selected_assignees} removed from {selected_task} successfully.")
                                 input("Press Enter to continue...")
                                 break  # Exit the loop after successful input
@@ -1100,7 +1101,7 @@ class TaskManager:
                         elif assignee_choice == '3':
                             break  # Exit the loop and return to the main menu
                         else:
-                            print("Error: Invalid choice.")
+                            print("[bold red]Error: Invalid choice.[/bold red]")
                             logging.info("Error: Invalid choice.")
                             input("Press Enter to continue...")
                             clear_screen()
@@ -1119,7 +1120,7 @@ class TaskManager:
                         selected_task["deadline"] = new_deadline.strftime("%Y-%m-%d %H:%M")
                         self.save_history(selected_project["project_id"], "Deadline Changed", selected_task["title"], 
                                       selected_task["deadline"], username, datetime.now())
-                        print("Deadline changed successfully.")
+                        print("[bold green]Deadline changed successfully.[/bold green]")
                         logger.info(f"Deadline of {selected_task} changed to {new_deadline}.")
                         input("Press Enter to continue...")
                         clear_screen()
@@ -1156,13 +1157,13 @@ class TaskManager:
                         selected_task["priority"] = new_priority.value
                         self.save_history(selected_project["project_id"], "Priority Changed", selected_task["title"], 
                                   new_priority.name, username, datetime.now())
-                        print("Priority changed successfully.")
+                        print("[bold green]Priority changed successfully.[/bold green]")
                         logger.info(f"Priority of task {selected_task} changed to {new_priority}")
                     elif new_priority_choice == "":
                         print("Keeping current priority.")
                         logging.info("Keeping current priority.")
                     else:
-                        print("Error: Invalid priority choice. Please choose a number between 1 and 4.")
+                        print("[bold red]Error: Invalid priority choice. Please choose a number between 1 and 4.[/bold red]")
                         logging.info("Error: Invalid priority choice.")
 
                 else:
@@ -1196,17 +1197,17 @@ class TaskManager:
                         selected_task["status"] = new_status.value
                         self.save_history(selected_project["project_id"], "Status Changed", selected_task["title"], 
                                   new_status.name, username, datetime.now())
-                        print("Status changed successfully.")
+                        print("[bold green]Status changed successfully.[/bold green]")
                         logger.info(f"Status of task {selected_task} changed to {new_status}")
                     elif new_status_choice == "":
                         print("Keeping current status.")
                         logging.info("Keeping current status.")
                     else:
-                        print("Error: Invalid status choice. Please choose a number between 1 and 5.")
+                        print("[bold red]Error: Invalid status choice. Please choose a number between 1 and 5.[/bold red]")
                         logging.info("Error: Invalid status choice.")
 
                 else:
-                    print("Error: You are not allowed to change this section.")
+                    print("[bold red]Error: You are not allowed to change this section.[/bold red]")
                     logging.info("Error: You are not allowed to change this section.")
         
                 input("Press Enter to continue...")
@@ -1223,7 +1224,7 @@ class TaskManager:
                     comment_choice = input("Choose an option: ")
 
                     if comment_choice not in ['1', '2', '3']:
-                        print("Error: Invalid option. Please choose a valid option.")
+                        print("[bold red]Error: Invalid option. Please choose a valid option.[/bold red]")
                         logging.info("Error: Invalid option. Please choose a valid option.")
                         input("Press Enter to continue...")
                         continue
@@ -1240,7 +1241,7 @@ class TaskManager:
                             selected_task["comments"].append({"username": username, "comment": comment_text})
                             self.save_history(selected_project["project_id"], "Comment Added", selected_task["title"], 
                                                       comment_text, username, datetime.now())
-                            print("Comment added successfully.")
+                            print("[bold green]Comment added successfully.[/bold green]")
                             logger.info(f"{username} added a comment to {selected_task}")
                             input("Press Enter to continue...")
                             clear_screen()
@@ -1282,7 +1283,7 @@ class TaskManager:
                                                 username, 
                                                 datetime.now()
                                             )
-                                            print("Comment removed successfully.")
+                                            print("[bold green]Comment removed successfully.[/bold green]")
                                             logger.info(f"{comment_to_remove} removed successfully.")
                                             input("Press Enter to continue...")
                                             clear_screen()
@@ -1292,21 +1293,25 @@ class TaskManager:
                                             logging.info(f"Error removing comment: {e}")
                                             input("Press Enter to continue...")
                                             clear_screen()
+                                            break
                                     else:
                                         print("Error: You do not have permission to remove this comment.")
                                         logging.info("Error: You do not have permission to remove this comment.")
                                         input("Press Enter to continue...")
                                         clear_screen()
+                                        break
                                 else:
-                                    print("Error: Invalid comment number.")
+                                    print("[bold red]Error: Invalid comment number.[/bold red]")
                                     logging.info("Error: Invalid comment number.")
                                     input("Press Enter to continue...")
                                     clear_screen()
+                                    break
                             else:
-                                print("Error: Invalid input. Please enter a valid comment number.")
+                                print("[bold red]Error: Invalid input. Please enter a valid comment number.[/bold red]")
                                 logging.info("Error: Invalid input.")
                                 input("Press Enter to continue...")
                                 clear_screen()
+
                     elif comment_choice == '3':
                         break
 
@@ -1317,7 +1322,7 @@ class TaskManager:
                 logger.info(f"Task {selected_task} saved and exited.")
                 return selected_task
             else:
-                print("Error: Invalid choice. Please try again.")
+                print("[bold red]Error: Invalid choice. Please try again.[/bold red]")
                 logging.info("Error: Invalid choice.")
                 input("Press Enter to continue...")
                 clear_screen()
@@ -1354,7 +1359,7 @@ class TaskManager:
         # Prompt user to select a task
         selected_task_index = input("Enter the number of the task to delete: ")
         if not selected_task_index.isdigit() or int(selected_task_index) < 1 or int(selected_task_index) > len(user_tasks):
-            print("Error: Invalid task selection. Please enter a valid task number.")
+            print("[bold red]Error: Invalid task selection. Please enter a valid task number.[/bold red]")
             logging.info("Error: Invalid task selection.")
             input("Press Enter to continue...")
             return
@@ -1373,7 +1378,7 @@ class TaskManager:
         self.save_tasks(self.tasks)
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.save_history(project_id, "Task Deleted", selected_task["title"], selected_task['title'], username, current_time)
-        print("Task deleted successfully.")
+        print("[bold green]Task deleted successfully.[/bold green]")
         logger.info(f"Task '{selected_task['title']}' deleted successfully.")
         input("Press Enter to continue...")
 
@@ -1439,10 +1444,10 @@ class TaskManager:
                 if task_choice in label_to_number.values():
                     break
                 else:
-                    print("Error: Invalid number. Please enter a valid task number.")
+                    print("[bold red]Error: Invalid number. Please enter a valid task number.[/bold red]")
                     logging.info("Error: Invalid number.")
             except ValueError:
-                print("Error: Invalid input. Please enter a number.")
+                print("[bold red]Error: Invalid input. Please enter a number.[/bold red]")
                 logging.info("Error: Invalid input.")
 
         # Get the selected task based on the user's choice
@@ -1461,6 +1466,7 @@ class TaskManager:
             menu_choice = input("Choose an option: ")
 
             if menu_choice == '1':
+                clear_screen()
                 
                 try:
                     # Display task details
@@ -1494,7 +1500,8 @@ class TaskManager:
             elif menu_choice == '4':
                 break
             else:
-                print("Error: Invalid choice. Please try again.")
+                print("[bold red]Error: Invalid choice. Please try again.[/bold red]")
+                input("Press Enter to continue...")
                 logging.info("Error: Invalid choice.")
 
     def tasks_menu(self, username, selected_project):
@@ -1519,7 +1526,7 @@ class TaskManager:
             elif choice == '4':
                 break
             else:
-                print("Error: Invalid choice. Please try again.")
+                print("[bold red]Error: Invalid choice. Please try again.[/bold red]")
                 logging.info("Error: Invalid choice.")
                 input("Press Enter to continue...")
                 clear_screen()
@@ -1546,7 +1553,7 @@ class TaskManager:
                     print(f"Timestamp: {formatted_time}")
                     print()
         except FileNotFoundError:
-            print("Erorr: No history available for this task.")
+            print("[bold red]Erorr: No history available for this task.[/bold red]")
             logging.info(f"Erorr: No history available task {selected_task}.")
 
 
