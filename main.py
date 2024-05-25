@@ -1,3 +1,9 @@
+import asyncio
+from asciimatics.effects import Cycle, Stars
+from asciimatics.renderers import FigletText
+from asciimatics.scene import Scene
+from asciimatics.screen import Screen
+from random import randint
 from rich.console import Console, OverflowMethod
 from rich.table import Table
 from rich import print
@@ -12,13 +18,14 @@ import hashlib
 import logging
 from rich.box import SIMPLE
 from datetime import datetime, timedelta
+import time
 
-
-logging.basicConfig(filename='Account/logfile.log',level=logging.INFO)
+logging.basicConfig(filename='Account/logfile.log', level=logging.INFO)
 logger = logging.getLogger()
 
-fileHandler=logging.FileHandler('logfile.log')
+fileHandler = logging.FileHandler('logfile.log')
 logger.addHandler(fileHandler)
+
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -31,11 +38,11 @@ class User:
         self.password = password
         self.active = active
 
+
 class UserManager:
     def __init__(self, users_file="Account/account.json"):
         self.users_file = users_file
         self.project_manager = ProjectManager()
-
 
     def save_users(self, users):
         with open(self.users_file, "w") as file:
@@ -58,25 +65,27 @@ class UserManager:
     def get_user_projects(self, username):
         projects = ProjectManager().load_projects()
         user_projects = [proj for proj in projects.values() if
-                         proj["owner"] == username or (proj.get("members") and username in proj["members"])]
+                         proj.get("owner") == username or (proj.get("members") and username in proj.get("members"))]
         return user_projects
-    
+
     def display_project_members(self, project):
         members = project.get("members", [])
+        console = Console()  # Initialize the Console object
         if members:
-            print("Project Members:")
+            console.print("Project Members:", style="bold")  # Display the header
             for index, member in enumerate(members, 1):
-                print(f"{index}. {member}")
+                console.print(f"{index}. {member}")  # Display the members
         else:
-            print("[bold red]Erorr: No members found for this project.[/bold red]")
-            logger.info(f"Erorr: No members found project {project}.")
-    
+            console.print("Error: No members found for this project.",
+                          style='bold red')  # Display error message if no members found
+            logger.info(f"Error: No members found for project {project}.")
+
     def print_sign_up(self):
         console = Console(width=50)
         console.print("  ┏┓•          ", justify='left', style="blink bold red")
         console.print("  ┗┓┓┏┓┏┓  ┓┏┏┓", justify='left', style="blink bold red")
         console.print("  ┗┛┗┗┫┛┗  ┗┻┣┛", justify='left', style="blink bold red")
-        console.print("      ┛      ┛ ", justify='left', style="blink bold red")    
+        console.print("      ┛      ┛ ", justify='left', style="blink bold red")
 
     def print_your_account(self):
         console = Console(width=50)
@@ -134,7 +143,7 @@ class UserManager:
 
         return (password, email, username)
 
-    def create_account(self):
+    def sign_up(self):
         console = Console(width=50)
         users = self.load_users()
 
@@ -188,7 +197,7 @@ class UserManager:
         console.print("\nConfirm your password: ", justify='left', style="blink bold magenta")
         confirm_password = input()
 
-        while password!= confirm_password:
+        while password != confirm_password:
             print("[bold red]Error: Passwords do not match![/bold red]")
             logging.info("Error: Passwords do not match!")
             input("Press Enter to continue...")
@@ -254,7 +263,7 @@ class UserManager:
         for overflow_p in overflow_methods_p:
             console.rule(overflow_p)
             print("\n")
-            console.print("********", overflow=overflow_p, justify='center', style="blink bold cyan") 
+            console.print("********", overflow=overflow_p, justify='center', style="blink bold cyan")
             print("\n")
 
     def login(self):
@@ -299,7 +308,7 @@ class UserManager:
                 self.login()
             elif answer.lower() == 'n':
                 clear_screen()
-                self.create_account()
+                self.sign_up()
             else:
                 clear_screen()
                 print("[bold red]Error: Invalid input! [/bold red]")
@@ -321,17 +330,45 @@ class UserManager:
             clear_screen()
 
             if choice == '1':
-                self.create_account()
+                self.sign_up()
             elif choice == '2':
                 self.login()
             elif choice == '3':
-                console.print("Good luck", justify='left', style="blink bold blue")
+                async def demo(screen):
+                    start_time = asyncio.get_event_loop().time()
+
+                    while True:
+                        current_time = asyncio.get_event_loop().time()
+                        elapsed_time = current_time - start_time
+                        if elapsed_time >= 10:
+                            screen.clear()
+                            screen.refresh()
+                            screen.close()  # Close the screen
+                            loop.stop()  # Stop the event loop
+                            return
+
+                        screen.print_at('EXIT!',
+                                        randint(0, screen.width), randint(0, screen.height),
+                                        colour=randint(0, screen.colours - 1),
+                                        bg=randint(0, screen.colours - 1))
+                        ev = screen.get_key()
+                        if ev in (ord('Q'), ord('q')):
+                            return
+                        screen.refresh()
+                        await asyncio.sleep(0.05)
+
+                screen = Screen.open()
+                loop = asyncio.new_event_loop()
+                task = loop.create_task(demo(screen))
+                loop.run_forever()
+                loop.close()
                 exit()
             else:
                 print("[bold red]Error: Invalid choice. Please enter 1, 2, or 3.[/bold red]")
                 logging.info("Error: Invalid choice.")
                 input("Press Enter to continue...")
                 clear_screen()
+
 
 class Project:
     def __init__(self, project_id, title, owner):
@@ -351,9 +388,18 @@ class ProjectManager:
     def load_projects(self):
         try:
             with open(self.projects_file, "r") as file:
-                return json.load(file)
+                data = file.read()
+                if not data:
+                    return {}  # Return an empty dictionary if the file is empty
+                return json.loads(data)
         except FileNotFoundError:
             return {}
+
+    def print_your_projects(self):
+        console = Console(width=50)
+        console.print("  ╦ ╦┌─┐┬ ┬┬─┐  ┌─┐┬─┐┌─┐ ┬┌─┐┌─┐┌┬┐┌─┐", justify='center', style='blink bold red')
+        console.print("  ╚╦╝│ ││ │├┬┘  ├─┘├┬┘│ │ │├┤ │   │ └─┐", justify='center', style='blink bold white')
+        console.print("   ╩ └─┘└─┘┴└─  ┴  ┴└─└─┘└┘└─┘└─┘ ┴ └─┘", justify='center', style='blink bold red')
 
     def check_project_existence(self, project_id):
         projects = self.load_projects()
@@ -361,6 +407,13 @@ class ProjectManager:
 
     def create_project(self, project_id, title, owner):
         projects = self.load_projects()
+
+        # Check if project_id or title is empty
+        if not project_id or not title:
+            print("[bold red]Error: Project ID and title cannot be empty![/bold red]")
+            input("Press Enter to continue...")
+            clear_screen()
+            return None
 
         # Check if the project_id already exists
         if project_id in projects:
@@ -372,8 +425,9 @@ class ProjectManager:
 
         # Check if the project with the same title already exists for the owner
         for proj in projects.values():
-            if proj["title"] == title and proj["owner"] == owner:
-                print("[bold red]Erorr: You already have a project with the same title! Please choose a different title.[/bold red]")
+            if proj["title"] == title and proj.get("owner") == owner:
+                print(
+                    "[bold red]Erorr: You already have a project with the same title! Please choose a different title.[/bold red]")
                 logging.error(f"You already have a project with the same title: {title} owned by {owner}!")
                 input("Press Enter to continue...")
                 clear_screen()
@@ -389,43 +443,32 @@ class ProjectManager:
         return Project(project_id, title, owner)
 
     def delete_project(self, owner):
-        projects = self.load_projects()
-        owned_projects = [proj for proj in projects.values() if proj["owner"] == owner]
-        if not owned_projects:
-            print("[bold red]Erorr: You don't own any projects to delete![/bold red]")
-            logging.info("Erorr: You don't own any projects to delete!You don't own any projects to delete!")
+        selected_project = self.select_project(owner)
+        if selected_project is None:
             return False
-    
-        while True:
-            print("Your projects:")
-            for index, proj in enumerate(owned_projects, 1):
-                print(f"{index}. {proj['title']} (ID: {proj['project_id']})")
-        
-            choice = input("Enter the number of the project you want to delete: ")
-            if not choice.isdigit() or int(choice) < 1 or int(choice) > len(owned_projects):
-                print("[bold red]Erorr: Invalid choice! Please enter a valid number.[/bold red]")
-                logging.info("Erorr: Invalid choice! Please enter a valid number.")
-                input("Press Enter to continue...")
-                clear_screen()
-                continue
 
-            project_to_delete = owned_projects[int(choice) - 1]
-            confirm = input(f"Are you sure you want to delete '{project_to_delete['title']}' project? (y/n): ")
-            if confirm.lower() == 'y':
-                del projects[project_to_delete['project_id']]
-                self.save_projects(projects)
-                logger.info(f"{owner} deleted project {project_to_delete['title']} successfully.")
-                print("[bold green]Project deleted successfully![/bold green]")
-                input("Press Enter to continue...")
-                clear_screen()
-                return True
-            else:
-                print("Deletion canceled.")
-                logging.info(f"[bold red]Erorr: project {project_to_delete['title']} Deletion canceled.[/bold red]")
-                input("Press Enter to continue...")
-                clear_screen()
-                return False
+        confirm = input(f"Are you sure you want to delete '{selected_project['title']}' project? (y/n): ")
+        if confirm.lower() == 'y':
+            projects = self.load_projects()
+            del projects[selected_project['project_id']]
+            self.save_projects(projects)
+            logger.info(f"{owner} deleted project {selected_project['title']} successfully.")
+            print("[bold green]Project deleted successfully![/bold green]")
+            input("Press Enter to continue...")
+            clear_screen()
+            return True
+        else:
+            print("Deletion canceled.")
+            logger.info(f"[bold red]Error: project {selected_project['title']} Deletion canceled.[/bold red]")
+            input("Press Enter to continue...")
+            clear_screen()
+            return False
 
+    def print_add_member(self):
+        console = Console(width=50)
+        console.print("  ┌─┐┌┬┐┌┬┐  ┌┬┐┌─┐┌┬┐┌┐ ┌─┐┬─┐", justify='center', style="blink bold magenta")
+        console.print("  ├─┤ ││ ││  │││├┤ │││├┴┐├┤ ├┬┘", justify='center', style="blink bold cyan")
+        console.print("  ┴ ┴─┴┘─┴┘  ┴ ┴└─┘┴ ┴└─┘└─┘┴└─", justify='center', style="blink bold magenta")
 
     def add_member_to_project(self, project_id, member, username):
         user_manager = UserManager()
@@ -439,79 +482,109 @@ class ProjectManager:
                     project["members"] = project.get("members", [])
                     if member not in project["members"]:
                         project["members"].append(member)
-                        print(f"[bold green]Member '{member}' added to project '{project['title']}' successfully.[/bold green]")
+                        print(
+                            f"[bold green]Member '{member}' added to project '{project['title']}' successfully.[/bold green]")
                         logger.info(f"Member '{member}' added to project '{project['title']}' successfully.")
                         self.save_projects(projects)
-                        input("Press Enter to continue...")
+                        print("Press Enter to continue...")
+                        input()
                         clear_screen()
                     else:
-                        print(f"[bold red]Erorr: Member '{member}' is already a member of project '{project['title']}'.[/bold red]")
+                        print(
+                            f"[bold red]Erorr: Member '{member}' is already a member of project '{project['title']}'.[/bold red]")
                         logging.info(f"Erorr: Member '{member}' is already a member of project '{project['title']}'.")
-                        input("Press Enter to continue...")
+                        print("Press Enter to continue...")
+                        input()
                         clear_screen()
                 else:
                     print("[bold red]Erorr: User not found![/bold red]")
-                    logging(f"Erorr: User '{member}' not found!")
-                    input("Press Enter to continue...")
+                    logging.error(f"Erorr: User '{member}' not found!")
+                    print("Press Enter to continue...")
+                    input()
                     clear_screen()
             else:
                 print("[bold red]Erorr: You are not the owner of this project![/bold red]")
                 logging.info("Erorr: You are not the owner of this project!")
-                input("Press Enter to continue...")
+                print("Press Enter to continue...")
+                input()
                 clear_screen()
         else:
             print(f"[bold red]Erorr: Project with ID '{project_id}' not found.[/bold red]")
             logging.info(f"Erorr: Project with ID '{project_id}' not found.")
-            input("Press Enter to continue...")
+            print("Press Enter to continue...")
+            input()
             clear_screen()
 
+    def print_members_of_project(self):
+        console = Console(width=70)
+        console.print("  ╔╦╗┌─┐┌┬┐┌┐ ┌─┐┬─┐┌─┐  ┌─┐┌─┐  ┌─┐┬─┐┌─┐ ┬┌─┐┌─┐┌┬┐", justify='left',
+                      style="blink bold magenta")
+        console.print("  ║║║├┤ │││├┴┐├┤ ├┬┘└─┐  │ │├┤   ├─┘├┬┘│ │ │├┤ │   │ ", justify='left',
+                      style="blink bold yellow")
+        console.print("  ╩ ╩└─┘┴ ┴└─┘└─┘┴└─└─┘  └─┘└    ┴  ┴└─└─┘└┘└─┘└─┘ ┴ ", justify='left',
+                      style="blink bold magenta")
+
     def remove_member_from_project(self, project_id, username):
+        console = Console(width=50)
         projects = self.load_projects()
         if project_id in projects:
             project = projects[project_id]
             if project["owner"] == username:
                 if "members" in project:
-                    print("Members of project:")
+                    self.print_members_of_project()
+
+                    table = Table(padding=(0, 10, 0, 10))
+                    table.add_column("No.", justify="center", style="bold yellow")
+                    table.add_column("Member", justify="center", style="bold magenta")
+
                     for index, member in enumerate(project["members"], 1):
-                        print(f"{index}. {member}")
+                        table.add_row(str(index), member)
+
+                    console.print(table)
+
                     while True:
-                        choice = input("Enter the number of the member you want to remove: ")
+                        console.print("Enter the number of the member you want to remove: ", justify='center')
+                        choice = input()
                         if not choice.isdigit() or int(choice) < 1 or int(choice) > len(project["members"]):
-                            print("[bold red]Erorr: Invalid choice! Please enter a valid number.[/bold red]")
-                            logging.info("Erorr: Invalid choice! Please enter a valid number.")
+                            print("[bold red]Error: Invalid choice! Please enter a valid number.[/bold red]")
+                            logging.info("Error: Invalid choice! Please enter a valid number.")
                             input("Press Enter to continue...")
                             clear_screen()
-                            print("Members of project:")
-                            for index, member in enumerate(project["members"], 1):
-                                print(f"{index}. {member}")
+                            self.print_members_of_project()
+                            console.print(table)
                             continue
+
                         member_to_remove = project["members"][int(choice) - 1]
-                        confirm = input(f"Are you sure you want to remove '{member_to_remove}' from project '{project['title']}'? (y/n): ")
+                        confirm = input(
+                            f"Are you sure you want to remove '{member_to_remove}' from project '{project['title']}'? (y/n): ")
                         if confirm.lower() == 'y':
                             project["members"].remove(member_to_remove)
                             self.save_projects(projects)
-                            logger.info(f"Member '{member_to_remove}' removed from project '{project['title']}' successfully.")
+                            logger.info(
+                                f"Member '{member_to_remove}' removed from project '{project['title']}' successfully.")
                             print("[bold green]Member removed successfully![/bold green]")
                             input("Press Enter to continue...")
                             clear_screen()
                             return True
+
                         else:
-                            print("[bold red]Erorr: Remove canceled.[/bold red]")
-                            logging.info("Erorr: Remove canceled.")
+                            print("[bold red]Error: Remove canceled.[/bold red]")
+                            logging.info("Error: Remove canceled.")
                             clear_screen()
                             return False
+
                 else:
-                    print("[bold red]Erorr: This project has no members.[/bold red]")
-                    logging.info("Erorr: This project has no members.")
+                    print("[bold red]Error: This project has no members.[/bold red]")
+                    logging.info("Error: This project has no members.")
                     clear_screen()
             else:
-                print("[bold red]Erorr: You are not the owner of this project![/bold red]")
-                logging.info(f"Erorr: You are not the owner of project '{project['title']}'!")
+                print("[bold red]Error: You are not the owner of this project![/bold red]")
+                logging.info(f"Error: You are not the owner of project '{project['title']}'!")
                 input("Press Enter to continue...")
                 clear_screen()
         else:
-            print(f"[bold red]Erorr: Project with ID '{project_id}' not found.[/bold red]")
-            logging.info(f"[bold red]Erorr: Project with ID '{project_id}' not found.[/bold red]")
+            print(f"[bold red]Error: Project with ID '{project_id}' not found.[/bold red]")
+            logging.info(f"Error: Project with ID '{project_id}' not found.")
             input("Press Enter to continue...")
             clear_screen()
 
@@ -519,7 +592,8 @@ class ProjectManager:
         projects = self.load_projects()
 
         # Create a table with four columns: Project Title, Owner, Role, and Members
-        table = Table(title="Your Projects", show_header=True, header_style="bold magenta")
+        self.print_your_projects()
+        table = Table(show_header=True, header_style="bold magenta")
         table.add_column("Project Title", justify="center", style="cyan")
         table.add_column("Owner", justify="center", style="cyan")
         table.add_column("Role", justify="center", style="cyan")
@@ -538,97 +612,139 @@ class ProjectManager:
         console.print(table)
 
     def select_project(self, username):
+        console = Console(width=50)
         projects = self.load_projects()
         owner_projects = [proj for proj in projects.values() if proj["owner"] == username]
 
         if not owner_projects:
-            print("Error: You are not associated with any projects.")
+            console.print("[bold red]Error: You are not associated with any projects.[/bold red]")
             logging.info("Error: You are not associated with any projects.")
             input("Press Enter to continue...")
             clear_screen()
             return None
 
-        print("Select a Project:")
+        self.print_your_projects()
+        time.sleep(0.5)
+
+        table = Table(padding=(0, 8, 0, 8))
+
+        table.add_column("No.", justify="center", style="bold cyan")
+        table.add_column("Project Title", justify="center", style="bold magenta")
+
         for index, project in enumerate(owner_projects, 1):
-            print(f"{index}. {project['title']}")
+            table.add_row(str(index), project['title'])
+
+        console.print(table)
 
         while True:
-            project_choice = input("Enter the project number: ")
+            console.print("\nEnter the project number: ", justify='center', style='bold white')
+            project_choice = input()
             if re.match("^\d+$", project_choice):
                 project_choice = int(project_choice) - 1
                 if 0 <= project_choice < len(owner_projects):
                     break
                 else:
-                    print("[bold red]Error: Invalid project choice.[/bold red]")
+                    console.print("[bold red]Error: Invalid project choice.[/bold red]")
                     logging.info("Error: Invalid project choice")
                     input("Press Enter to continue...")
                     clear_screen()
-                    for index, project in enumerate(owner_projects, 1):
-                        print(f"{index}. {project['title']}")
+                    self.print_your_projects()
+                    console.print(table)
             else:
-                print("[bold red]Error: Please enter a valid project number.[/bold red]")
+                console.print("[bold red]Error: Please enter a valid project number.[/bold red]")
                 logging.info("Error: Invalid project number")
                 input("Press Enter to continue...")
                 clear_screen()
-                for index, project in enumerate(owner_projects, 1):
-                    print(f"{index}. {project['title']}")
+                self.print_your_projects()
+                console.print(table)
 
         selected_project = owner_projects[project_choice]
         return selected_project
 
-
     def show_project(self, username):
+        console = Console(width=50)
         projects = self.load_projects()
         person_projects = [proj for proj in projects.values() if
-                       proj["owner"] == username or (proj.get("members") and username in proj["members"])]
+                           proj["owner"] == username or (proj.get("members") and username in proj["members"])]
 
         if not person_projects:
-            print("Error: You are not associated with any projects.")
+            console.print("[bold red]Error: You are not associated with any projects.[/bold red]")
             logging.info("Error: You are not associated with any projects.")
             input("Press Enter to continue...")
             clear_screen()
             return None
 
-        print("Select a Project:")
+        self.print_your_projects()
+
+        table = Table(padding=(0, 8, 0, 8))
+
+        table.add_column("No.", justify="center", style="bold yellow")
+        table.add_column("Project Title", justify="center", style="bold cyan")
+
         for index, project in enumerate(person_projects, 1):
-            print(f"{index}. {project['title']}")
+            table.add_row(str(index), project['title'])
+
+        console.print(table)
 
         while True:
-            project_choice = input("Enter the project number: ")
+            console.print("\nEnter the project number: ", justify='center', style='bold white')
+            project_choice = input()
             if re.match("^\d+$", project_choice):
                 project_choice = int(project_choice) - 1
                 if 0 <= project_choice < len(person_projects):
                     break
                 else:
-                    print("[bold red]Error: Invalid project choice[/bold red]")
+                    console.print("[bold red]Error: Invalid project choice[/bold red]")
                     logging.info("Error: Invalid project choice")
                     input("Press Enter to continue...")
                     clear_screen()
-                    print("Select a Project:")
-                    for index, project in enumerate(person_projects, 1):
-                        print(f"{index}. {project['title']}")
+                    self.print_your_projects()
+                    console.print(table)
             else:
-                print("Please enter a valid project number.")
+                console.print("[bold red]Please enter a valid project number.[/bold red]")
                 logging.info("Please enter a valid project number.")
                 input("Press Enter to continue...")
                 clear_screen()
-                for index, project in enumerate(person_projects, 1):
-                    print(f"{index}. {project['title']}")
+                self.print_your_projects()
+                console.print(table)
 
         selected_project = person_projects[project_choice]
         return selected_project
 
+    def print_project_manager_menu(self):
+        console = Console(width=80)
+        console.print("  ╔═╗┬─┐┌─┐ ┬┌─┐┌─┐┌┬┐  ╔╦╗┌─┐┌┐┌┌─┐┌─┐┌─┐┌┬┐┌─┐┌┐┌┌┬┐  ╔╦╗┌─┐┌┐┌┬ ┬", justify='left',
+                      style='blink bold cyan')
+        console.print("  ╠═╝├┬┘│ │ │├┤ │   │   ║║║├─┤│││├─┤│ ┬├┤ │││├┤ │││ │   ║║║├┤ ││││ │", justify='left',
+                      style='blink bold cyan')
+        console.print("  ╩  ┴└─└─┘└┘└─┘└─┘ ┴   ╩ ╩┴ ┴┘└┘┴ ┴└─┘└─┘┴ ┴└─┘┘└┘ ┴   ╩ ╩└─┘┘└┘└─┘\n", justify='left',
+                      style='blink bold cyan')
+
     def edit_project_menu(self, username, selected_project):
         task_manager = TaskManager()
+        console = Console(width=60)
         while True:
             clear_screen()
-            print("1. Add Member to Project")
-            print("2. Remove Member from Project")
-            print("3. Manage Tasks")
-            print("4. Exit")
-            choice = input("Choose an option: ")
+            self.print_project_manager_menu()
+            time.sleep(0.7)
+            console.print("1. Add Member to Project", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("2. Remove Member from Project", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("3. Manage Tasks", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("4. Exit", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("Choose an option: ", justify='center', style="blink bold yellow")
+            choice = input()
+            clear_screen()
             if choice == '1':
                 clear_screen()
+                self.print_add_member()
                 member = input("Enter the username of the member you want to add: ")
                 self.add_member_to_project(selected_project['project_id'], member, username)
             elif choice == '2':
@@ -645,19 +761,76 @@ class ProjectManager:
                 print("[bold red]Invalid choice. Please try again.[/bold red]")
                 input("Press Enter to continue...")
 
-    def account(self, username):
+    def print_project_menu(self):
+        console = Console(width=50)
+        console.print("  ╔═╗┬─┐┌─┐ ┬┌─┐┌─┐┌┬┐┌─┐  ┌┬┐┌─┐┌┐┌┬ ┬", justify='center', style="blink bold magenta")
+        console.print("  ╠═╝├┬┘│ │ │├┤ │   │ └─┐  │││├┤ ││││ │", justify='center', style="blink bold magenta")
+        console.print("  ╩  ┴└─└─┘└┘└─┘└─┘ ┴ └─┘  ┴ ┴└─┘┘└┘└─┘\n", justify='center', style="blink bold magenta")
 
+    def print_create_project(self):
+        console = Console(width=50)
+        console.print("  ┌─┐┬─┐┌─┐┌─┐┌┬┐┌─┐  ┌─┐┬─┐┌─┐ ┬┌─┐┌─┐┌┬┐", justify='center', style="blink bold yellow")
+        console.print("  │  ├┬┘├┤ ├─┤ │ ├┤   ├─┘├┬┘│ │ │├┤ │   │ ", justify='center', style="blink bold yellow")
+        console.print("  └─┘┴└─└─┘┴ ┴ ┴ └─┘  ┴  ┴└─└─┘└┘└─┘└─┘ ┴ \n", justify='center', style="blink bold yellow")
+
+    def create_project_design(self):
+
+        console = Console(width=50)
+        self.print_create_project()
+        overflow_methods: List[OverflowMethod] = ["Enter project ID: "]
+        for overflow in overflow_methods:
+            console.rule(overflow, style="bold yellow")
+            print("\n")
+            project_id = input()
+            clear_screen()
+            self.print_create_project()
+            console.rule(overflow)
+            print("\n")
+            console.print(project_id, overflow=overflow, style="blink bold cyan", justify='center')
+            print("\n")
+
+        overflow_methods_u: List[OverflowMethod] = ["Enter project title: "]
+        for overflow_u in overflow_methods_u:
+            console.rule(overflow_u, style="bold yellow")
+            print("\n")
+            title = input()
+            clear_screen()
+            self.print_create_project()
+            console.rule(overflow, style="bold magenta")
+            print("\n")
+            console.print(project_id, overflow=overflow, style="blink bold cyan", justify='center')
+            print("\n")
+            console.rule(overflow, style="bold magenta")
+            print("\n")
+            console.print(title, overflow=overflow_u, style="blink bold yellow", justify='center')
+            print("\n")
+        return project_id, title
+
+    def account(self, username):
+        console = Console(width=50)
         while True:
-            print("1. Create Project")
-            print("2. Edit Project")
-            print("3. Delete Project")
-            print("4. View Projects")
-            print("5. Logout")
-            choice = input("Choose an option: ")
+            self.print_project_menu()
+            time.sleep(0.7)
+            console.print("1. Create Project", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("2. Edit Project", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("3. Delete Project", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("4. View Projects", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("5. Logout", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("Choose an option: ", justify='center', style="blink bold yellow")
+            choice = input()
             clear_screen()
             if choice == '1':
-                project_id = input("Enter project ID: ")
-                title = input("Enter project title: ")
+                project_id, title = self.create_project_design()
                 self.create_project(project_id, title, username)
 
             elif choice == '2':
@@ -671,7 +844,9 @@ class ProjectManager:
 
             elif choice == '4':
                 self.view_projects(username)
-                input("Press Enter to continue...")
+                print()
+                console.print("Press Enter to continue...", justify='center')
+                input()
                 clear_screen()
 
             elif choice == '5':
@@ -682,6 +857,7 @@ class ProjectManager:
                 input("Press Enter to continue...")
                 clear_screen()
                 continue
+
 
 class Priority(Enum):
     CRITICAL = "CRITICAL"
@@ -762,7 +938,6 @@ class TaskManager:
         with open(self.history_file, "w") as file:
             json.dump(history, file, indent=4)
 
-
     def update_task(self, task_id, updated_task):
         if task_id in self.tasks:
             self.tasks[task_id].update(updated_task)
@@ -773,28 +948,47 @@ class TaskManager:
             print("Error: Task not found.")
             logger.info(f"Error: Task {task_id} not found.")
 
-    def get_valid_datetime(self, prompt):
+    def get_valid_datetime(self):
+        console = Console(width=60)
         while True:
-            datetime_input = input(prompt)
+            console.print("Enter the task deadline (2024-09-04 04:09): ", justify='center', style='white underline')
+            datetime_input = input()
             if not datetime_input:
                 return None  # Return None if the input is empty
             try:
                 datetime_obj = datetime.strptime(datetime_input, "%Y-%m-%d %H:%M")
                 if datetime_obj < datetime.now():
-                    print("[bold red]Error: Invalid date and time. It should be in the future.[/bold red]")
+                    console.print("\nError: Invalid date and time. It should be in the future.", justify='center',
+                                  style='red')
                     logging.info("Error: Invalid date and time. It should be in the future.")
                     continue
                 return datetime_obj
             except ValueError:
-                print("[bold red]Error: Invalid date format. Please enter the date and time in the format YYYY-MM-DD HH:MM.[/bold red]")
-                logging.info("Error: Invalid date format. Please enter the date and time in the format YYYY-MM-DD HH:MM.")
+                console.print(
+                    "\nError: Invalid date format. Please enter the date and time in the format YYYY-MM-DD HH:MM.",
+                    justify='center', style='red')
+                logging.info(
+                    "Error: Invalid date format. Please enter the date and time in the format YYYY-MM-DD HH:MM.")
+
+    def print_create_task(self):
+        console = Console(width=100)
+        console.print("     ___ ____   ____  ___  ______  ____    ______  ___   __  __ __", justify='left',
+                      style='blink bold yellow')
+        console.print("[yellow]    //   || \\\ ||    // \\\ | || | ||       | || | // \\\ (( \ || // [/yellow]",
+                      justify='left', style='blink bold yellow')
+        console.print("[yellow]   ((    ||_// ||==  ||=||   ||   ||==       ||   ||=||  \\\  ||<<  [/yellow]",
+                      justify='left', style='blink bold yellow')
+        console.print("[yellow]    \\__  || \\\ ||___ || ||   ||   ||___      ||   || || \_)) || \\\ [/yellow]",
+                      justify='left', style='blink bold yellow')
 
     def create_task(self, username, selected_project):
+        console = Console(width=80)
         project_manager = ProjectManager()
         projects = project_manager.load_projects()
 
         if selected_project['owner'] != username:
-            print("Error: You do not have permission to create tasks for this project.")
+            console.print("Error: You do not have permission to create tasks for this project.", justify='center',
+                          style='red')
             logging.info("Error: You do not have permission to create tasks for this project.")
             input("Press Enter to continue...")
             clear_screen()
@@ -803,40 +997,53 @@ class TaskManager:
         project_id = selected_project["project_id"]
 
         while True:
-            label = input("Enter the task label: ")
+            self.print_create_task()
+            print()
+            console.print("Enter the task label: ", justify='center', style='white underline')
+            label = input()
             if label.strip():
                 break
             else:
-                print("Error: Task label cannot be empty. Please enter a label.")
+                console.print("Error: Task label cannot be empty. Please enter a label.", justify='center',
+                              style='bold red')
                 logging.info("Error: Task label cannot be empty.")
-                input("Press Enter to continue...")
+                console.print("Press Enter to continue...", justify='center', style='white')
+                input()
                 clear_screen()
 
-        title = input("Enter the task title: ")
-        description = input("Enter the task description: ")
+        console.print("Enter the task title: ", justify='center', style='white underline')
+        title = input()
+        console.print("Enter the task description: ", justify='center', style='white underline')
+        description = input()
         start_datetime = datetime.now()
-        end_datetime = self.get_valid_datetime("Enter the task deadline (YYYY-MM-DD HH:MM): ")
+        end_datetime = self.get_valid_datetime()
         if not end_datetime:
             end_datetime = start_datetime + timedelta(days=1)
         elif end_datetime < start_datetime:
-            print("[bold red]Error: Invalid deadline. It should be after the start time.[/bold red]")
+            console.print("Error: Invalid deadline. It should be after the start time.", justify='center', style='red')
             logging.info("Error: Invalid deadline. It should be after the start time.")
             return
 
-        print("Members in the project:")
-        members = projects[project_id].get('members', [])
-        for idx, member in enumerate(members, 1):
-            print(f"{idx}. {member}")
-
-        selected_members = [] 
+        selected_members = []
         while True:
-            member_choices = input("Enter the member numbers (comma-separated): ")
+            console.print("Enter the member numbers (comma-separated): ", justify='center', style='white underline')
+            console.print("\nMembers in the project:", justify='left', style='blink bold magenta')
+            print()
+            members = projects[project_id].get('members', [])
+            for idx, member in enumerate(members, 1):
+                print(f"{idx}. {member}")
+                time.sleep(0.5)
+
+            member_choices = input()
             if not member_choices:
-                print("No members selected for the task. You can add members later.")
+                console.print("No members selected for the task. You can add members later.", justify='center',
+                              style='bold red')
                 logging.info("Error: No members selected for the task. You can add members later.")
-                proceed = input("Do you want to proceed without assigning any members? (y/n): ")
+                console.print("Do you want to proceed without assigning any members? (y/n): ", justify='center',
+                              style='red underline')
+                proceed = input()
                 if proceed.lower() != 'y':
-                    print("Task creation cancelled.")
+                    console.print("Task creation cancelled.", justify='center', style='bold red')
                     return
                 else:
                     break
@@ -845,21 +1052,27 @@ class TaskManager:
                 if choice.isdigit() and 0 < int(choice) <= len(members):
                     selected_members.append(members[int(choice) - 1])
                 else:
-                    print("[bold red]Error: Invalid member choice.[/bold red]")
+                    console.print("Error: Invalid member choice.", justify='center', style='bold red')
+
                     logging.info("Error: Invalid member choice.")
                     invalid_choice = True
                     break
             if not invalid_choice:
                 break
 
-        print("Select Priority:")
-        print("1. CRITICAL")
-        print("2. HIGH")
-        print("3. MEDIUM")
-        print("4. LOW")
-
         while True:
-            priority = input("Choose priority (1-4): ")
+            console.print("Choose priority (1-4): ", justify='center', style='white underline')
+            console.print("\nSelect Priority:", justify='left', style='blink bold magenta')
+            time.sleep(0.5)
+            print("1. CRITICAL")
+            time.sleep(0.5)
+            print("2. HIGH")
+            time.sleep(0.5)
+            print("3. MEDIUM")
+            time.sleep(0.5)
+            print("4. LOW")
+            time.sleep(0.5)
+            priority = input()
             if priority.isdigit() and 1 <= int(priority) <= 4:
                 selected_priority = {
                     '1': Priority.CRITICAL,
@@ -872,26 +1085,31 @@ class TaskManager:
                 selected_priority = Priority.CRITICAL
                 break
             else:
-                print("[bold red]Error: Invalid input. Please choose a priority between 1 and 4.[/bold red]")
+                console.print("Error: Invalid input. Please choose a priority between 1 and 4.", justify='center',
+                              style='bold red')
                 logging.info("Error: Invalid input.")
 
-        print(f"Selected priority: {selected_priority}")
-
-        print("Select Status:")
-        print("1. BACKLOG")
-        print("2. TODO")
-        print("3. DOING")
-        print("4. DONE")
-        print("5. ARCHIVED")
+        console.print(f"Selected priority: {selected_priority}\n", justify='center', style='blink bold cyan')
 
         while True:
-            status = input("Choose Status (1-5): ")
+            console.print("Choose Status (1-5): ", justify='center', style='white underline')
+            console.print("\nSelect Status: ", justify='left', style='blink bold magenta')
+            print("1. BACKLOG")
+            time.sleep(0.5)
+            print("2. TODO")
+            time.sleep(0.5)
+            print("3. DOING")
+            time.sleep(0.5)
+            print("4. DONE")
+            time.sleep(0.5)
+            print("5. ARCHIVED")
+            status = input()
             if status.isdigit() and 1 <= int(status) <= 5:
                 selected_status = {
                     '1': Status.BACKLOG,
                     '2': Status.TODO,
                     '3': Status.DOING,
-                    '4': Status.DONE, 
+                    '4': Status.DONE,
                     '5': Status.ARCHIVED
                 }.get(status, Status.BACKLOG)
                 break
@@ -899,12 +1117,13 @@ class TaskManager:
                 selected_status = Status.BACKLOG
                 break
             else:
-                print("[bold red]Error: Invalid input. Please choose a status between 1 and 5.[/bold red]")
+                console.print("Error: Invalid input. Please choose a status between 1 and 5.", justify='center',
+                              style='bold red')
                 logging.info("Error: Invalid input.")
 
-        print(f"Selected status: {selected_status}")
-
-        comments = input("Enter comments for the task: ").strip()
+        console.print(f"Selected status: {selected_status}\n", justify='center', style='blink bold cyan')
+        console.print("Enter comments for the task: ", justify='center', style='white underline')
+        comments = input().strip()
 
         new_task = {
             "task_id": str(uuid.uuid4()),
@@ -925,228 +1144,324 @@ class TaskManager:
         self.save_tasks(tasks)
         self.save_history(project_id, "Task Created", label, title, username, datetime.now())
 
-        print("[bold green]Task created successfully![/bold green]")
+        console.print("Task created successfully!", justify='center', style='bold green')
         logging.info("Task created successfully!")
-        input("Press Enter to continue...")
+        console.print("Press Enter to continue...", justify='center', style='bold white')
+        input()
         clear_screen()
 
+    def print_edit_task_menu(self):
+        console = Console(width=50)
+        console.print("  ╔═╗┌┬┐┬┌┬┐  ╔╦╗┌─┐┌─┐┬┌─  ╔╦╗┌─┐┌┐┌┬ ┬", justify='center', style='blink bold cyan')
+        console.print("  ║╣  │││ │    ║ ├─┤└─┐├┴┐  ║║║├┤ ││││ │", justify='center', style='blink bold magenta')
+        console.print("  ╚═╝─┴┘┴ ┴    ╩ ┴ ┴└─┘┴ ┴  ╩ ╩└─┘┘└┘└─┘", justify='center', style='blink bold cyan')
+
     def edit_task(self, username, selected_project, selected_task):
+
         self.load_tasks()
+        console = Console(width=50)
         while True:
             clear_screen()
-            print("Edit Task Menu:")
-            print("1. Change label")
-            print("2. Change Title")
-            print("3. Change Description")
-            print("4. Change Assignees")
-            print("5. Change Deadline")
-            print("6. Change Priority")
-            print("7. Change Status")
-            print("8. Comments")
-            print("9. Exit")
-
-            choice = input("Choose an option: ")
+            self.print_edit_task_menu()
+            time.sleep(0.7)
+            console.print("\n1. Change label", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("2. Change Title", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("3. Change Description", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("4. Change Assignees", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("5. Change Deadline", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("6. Change Priority", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("7. Change Status", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("8. Comments", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("9. Exit", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("Choose an option: ", justify='center')
+            choice = input()
             if choice == '1':
                 clear_screen()
                 if username == selected_project["owner"] or username in selected_task["assignees"]:
-                    new_label = input("Enter new label (or leave blank): ")
+                    console.print("Change label:", justify='center', style='blink bold magenta')
+                    console.print("Enter new label (or leave blank): ", justify='center', style='white')
+                    new_label = input()
                     if new_label:
                         selected_task["label"] = new_label
                         self.save_history(selected_project["project_id"], "Task label Changed", selected_task["title"],
-                                              new_label, username, datetime.now())
+                                          new_label, username, datetime.now())
 
-                        print("[bold green]label changed successfully.[/bold green]")
+                        console.print("label changed successfully.", justify='center', style='bold green')
                         logger.info(f"label of task {selected_task} changed to {new_label}")
-                        input("Press Enter to continue...")
+                        console.print("Press Enter to continue...", justify='center', style='bold white')
+                        input()
                         clear_screen()
                     else:
-                        print("label remains unchanged.")
+                        console.print("label remains unchanged.", justify='center', style='bold red')
                         logger.info("label remains unchanged.")
-                        input("Press Enter to continue...")
+                        console.print("Press Enter to continue...", justify='center', style='bold white')
+                        input()
                         clear_screen()
                 else:
-                    print("You are not allowed to change this section.")
+                    console.print("You are not allowed to change this section.", justify='center', style='bold red')
                     logger.info("You are not allowed to change this section.")
-                    input("Press Enter to continue...")
+                    console.print("Press Enter to continue...", justify='center', style='bold white')
+                    input()
                     clear_screen()
                     return
-            
+
             elif choice == '2':
                 clear_screen()
                 if username == selected_project["owner"] or username in selected_task["assignees"]:
-                    new_title = input("Enter new title (leave blank to remove current title): ")
+                    console.print("Change Title: ", justify='center', style='blink bold blue')
+                    console.print("Enter new title (leave blank to remove current title): ", justify='center',
+                                  style='white')
+                    new_title = input()
                     if new_title:
                         selected_task["title"] = new_title
                         self.save_history(selected_project["project_id"], "Task Title Changed", selected_task["title"],
-                                              new_title, username, datetime.now())
-                        print("[bold green]Title changed successfully.[/bold green]")
+                                          new_title, username, datetime.now())
+
+                        console.print("Title changed successfully.", justify='center', style='bold green')
                         logger.info(f"title of task {selected_task} changed to {new_title}")
-                        input("Press Enter to continue...")
+                        console.print("Press Enter to continue...", justify='center', style='bold white')
+                        input()
                         clear_screen()
                     else:
                         selected_task["title"] = ""
                         self.save_history(selected_project["project_id"], "Task Title Removed", selected_task["title"],
-                                              selected_task["title"], username, datetime.now())
-                        print("[bold green]Title removed successfully.[/bold green]")
+                                          selected_task["title"], username, datetime.now())
+                        console.print("Title removed successfully.", justify='center', style='bold green')
                         logger.info(f"Title of task {selected_task} removed successfully.")
-                        input("Press Enter to continue...")
+                        console.print("Press Enter to continue...", justify='center', style='bold white')
+                        input()
                 else:
-                    print("Error: You are not allowed to change this section.")
+                    console.print("Error: You are not allowed to change this section.", justify='center',
+                                  style='bold red')
                     logger.info("Error: You are not allowed to change this section.")
-                    input("Press Enter to continue...")
+                    console.print("Press Enter to continue...", justify='center', style='bold white')
+                    input()
                     return
 
             elif choice == '3':
                 clear_screen()
                 if username == selected_project["owner"] or username in selected_task["assignees"]:
-                    new_description = input("Enter new description (leave blank to remove current description): ")
+                    console.print("Change Description: ", justify='center', style='blink bold magenta')
+                    console.print("Enter new description (leave blank to remove current description): ",
+                                  justify='center', style='white')
+                    new_description = input()
                     if new_description:
                         selected_task["description"] = new_description
-                        self.save_history(selected_project["project_id"], "Task Description Changed", selected_task["title"],
-                                              new_description, username, datetime.now())
-                        print("[bold green]Description changed successfully.[/bold green]")
+                        self.save_history(selected_project["project_id"], "Task Description Changed",
+                                          selected_task["title"],
+                                          new_description, username, datetime.now())
+                        console.print("Description changed successfully.", justify='center', style='bold green')
                         logger.info(f"Description of task {selected_task} changed to {new_description}")
-                        input("Press Enter to continue...")
+                        console.print("Press Enter to continue...", justify='center', style='bold white')
+                        input()
                         clear_screen()
                     else:
                         selected_task["description"] = ""
-                        self.save_history(selected_project["project_id"], "Task Description Removed", selected_task["title"],
-                                              selected_task["description"], username, datetime.now())
-                        print("[bold green]Description removed successfully.[/bold green]")
+                        self.save_history(selected_project["project_id"], "Task Description Removed",
+                                          selected_task["title"],
+                                          selected_task["description"], username, datetime.now())
+                        console.print("Description removed successfully.", justify='center', style='bold green')
                         logger.info(f"Description of task {selected_task} removed successfully.")
-                        input("Press Enter to continue...")
+                        console.print("Press Enter to continue...", justify='center', style='bold white')
+                        input()
                         clear_screen()
                 else:
-                    print("You are not allowed to change this section.")
+                    console.print("Error: You are not allowed to change this section.", justify='center',
+                                  style='bold red')
                     logger.info("You are not allowed to change this section.")
-                    input("Press Enter to continue...")
+                    console.print("Press Enter to continue...", justify='center', style='bold white')
+                    input()
                     return
 
             elif choice == '4':
                 clear_screen()
                 if username == selected_project["owner"]:
                     while True:  # Loop until valid choice is made
-                        print("1. Add Assignees")
-                        print("2. Remove Assignees")
-                        print("3. Exit")
-
-                        assignee_choice = input("Choose an option: ")
+                        console.print("Assignees menu: ", justify='center', style="blink bold blue")
+                        console.print("\n1. Add Assignees", justify='center', style='white')
+                        console.print("  ", justify='center')
+                        console.print("2. Remove Assignees", justify='center', style='white')
+                        console.print("  ", justify='center')
+                        console.print("3. Exit", justify='center', style='white')
+                        console.print("  ", justify='center')
+                        console.print("Choose an option: ", justify='center', style='white')
+                        assignee_choice = input()
 
                         if assignee_choice == '1':
                             clear_screen()
                             # Add Assignees
-                            available_assignees = [member for member in selected_project["members"] if member not in selected_task["assignees"]]
+                            available_assignees = [member for member in selected_project["members"] if
+                                                   member not in selected_task["assignees"]]
                             if not available_assignees:
-                                print("There are no available assignees to add.")
+                                console.print("Error: There are no available assignees to add.", justify='center',
+                                              style='bold red')
                                 logging.info("There are no available assignees to add.")
-                                input("Press Enter to continue...")
-                                continue
-            
-                            print("Available Assignees:")
+                                console.print("Press Enter to continue...", justify='center', style='bold white')
+                                input()
+                                clear_screen()
+                                break
+
+                            console.print("Available Assignees: ", justify='center', style='bold magenta')
                             for index, assignee in enumerate(available_assignees, 1):
-                                print(f"{index}. {assignee}")
-            
-                            selected_assignees = input("Enter the numbers of the assignees to add (comma-separated): ").split(',')
-                            selected_assignees = [int(x.strip()) - 1 for x in selected_assignees if re.match("^\d+$", x.strip())]
+                                console.print(f"{index}. {assignee}", justify='center', style='cyan')
+                                console.print("  ", justify='center')
+                                time.sleep(0.5)
+
+                            console.print("\nEnter the numbers of the assignees to add (comma-separated): ",
+                                          justify='center', style='white')
+                            selected_assignees = input().split(',')
+                            selected_assignees = [int(x.strip()) - 1 for x in selected_assignees if
+                                                  re.match("^\d+$", x.strip())]
 
                             for index in selected_assignees:
                                 if 0 <= index < len(available_assignees):
                                     selected_task["assignees"].append(available_assignees[index])
                                 else:
-                                    print("[bold red]Error: Invalid assignee choice.[/bold red]")
+                                    console.print("Error: Invalid assignee choice.", justify='center', style='bold red')
                                     logging.info("Error: Invalid assignee choice.")
-                                    input("Press Enter to continue...")
-                                    continue  # Restart the loop to get input again
+                                    console.print("Press Enter to continue...", justify='center', style='bold white')
+                                    input()
+                                    clear_screen()  # Restart the loop to get input again
+                                    break
                             else:
-                                self.save_history(selected_project["project_id"], "Assignees Added", selected_task["title"],
-                                                        ', '.join(selected_task["assignees"]), username, datetime.now())
-                                print("[bold green]Assignees added successfully.[/bold green]")
+                                self.save_history(selected_project["project_id"], "Assignees Added",
+                                                  selected_task["title"],
+                                                  ', '.join(selected_task["assignees"]), username, datetime.now())
+                                console.print("Assignees added successfully.", justify='center', style='bold green')
                                 logger.info(f"Assignees {selected_assignees} added to {selected_task} successfully.")
-                                input("Press Enter to continue...")
+                                console.print("Press Enter to continue...", justify='center', style='bold white')
+                                input()
                                 clear_screen()
-                                break  # Exit the loop after successful input
-                
+                                continue  # Exit the loop after successful input
+
                         elif assignee_choice == '2':
                             clear_screen()
                             # Remove Assignees
+                            console.print("Current Assignees:", justify='center', style='blink bold magenta')
                             if not selected_task["assignees"]:
-                                print("Error: There are no assignees to remove.")
+                                console.print("Error: There are no assignees to remove.", justify='center',
+                                              style='bold red')
                                 logging.info("Error: There are no assignees to remove.")
-                                input("Press Enter to continue...")
-                                continue
-            
-                            print("Current Assignees:")
+                                console.print("Press Enter to continue...", justify='center', style='bold white')
+                                input()
+                                clear_screen()
+                                break
+
                             for index, assignee in enumerate(selected_task["assignees"], 1):
-                                print(f"{index}. {assignee}")
-            
-                            selected_assignees = input("Enter the numbers of the assignees to remove (comma-separated): ").split(',')
-                            selected_assignees = [int(x.strip()) - 1 for x in selected_assignees if re.match("^\d+$", x.strip())]
-            
+                                console.print(f"{index}. {assignee}", justify='center')
+                                time.sleep(0.5)
+
+                            console.print("Enter the numbers of the assignees to remove (comma-separated): ",
+                                          justify='center', style='white')
+                            selected_assignees = input().split(',')
+                            selected_assignees = [int(x.strip()) - 1 for x in selected_assignees if
+                                                  re.match("^\d+$", x.strip())]
+
                             removed_assignees = []
                             for index in selected_assignees:
                                 if 0 <= index < len(selected_task["assignees"]):
                                     removed_assignees.append(selected_task["assignees"].pop(index))
                                 else:
-                                    print("[bold red]Error: Invalid assignee choice.[/bold red]")
+                                    console.print("Error: Invalid assignee choice.", justify='center', style='bold red')
                                     logging.info("Error: Invalid assignee choice.")
-                                    continue  # Restart the loop to get input again
+                                    console.print("Press Enter to continue...", justify='center', style='bold white')
+                                    input()
+                                    clear_screen()
+                                    break  # Restart the loop to get input again
                             else:
-                                self.save_history(selected_project["project_id"], "Assignees Removed", selected_task["title"], 
-                                                     ', '.join(removed_assignees), username, datetime.now())
-                                print("[bold green]Assignees removed successfully.[/bold green]")
-                                logger.info(f"Assignees {selected_assignees} removed from {selected_task} successfully.")
-                                input("Press Enter to continue...")
-                                break  # Exit the loop after successful input
-                
+                                self.save_history(selected_project["project_id"], "Assignees Removed",
+                                                  selected_task["title"],
+                                                  ', '.join(removed_assignees), username, datetime.now())
+                                console.print("Assignees removed successfully.", justify='center', style='bold green')
+                                logger.info(
+                                    f"Assignees {selected_assignees} removed from {selected_task} successfully.")
+                                console.print("Press Enter to continue...", justify='center', style='bold white')
+                                input()
+                                clear_screen()
+                                continue  # Exit the loop after successful input
+
                         elif assignee_choice == '3':
                             break  # Exit the loop and return to the main menu
                         else:
-                            print("[bold red]Error: Invalid choice.[/bold red]")
+                            console.print("Error: Invalid choice.", justify='center', style='bold red')
                             logging.info("Error: Invalid choice.")
-                            input("Press Enter to continue...")
+                            console.print("Press Enter to continue...", justify='center', style='bold white')
+                            input()
                             clear_screen()
                             continue  # Restart the loop to get valid input
                 else:
-                    print("Error: You are not allowed to change this section.")
+                    console.print("Error: You are not allowed to change this section.", justify='center',
+                                  style='bold red')
                     logging.info("Error: You are not allowed to change this section.")
-                    input("Press Enter to continue...")
+                    console.print("Press Enter to continue...", justify='center', style='bold white')
+                    input()
                     return
 
             elif choice == '5':
                 clear_screen()
+                console.print("Change Deadline: ", justify='center', style='blink bold magenta')
                 if username == selected_project["owner"] or username in selected_task["assignees"]:
-                    new_deadline = self.get_valid_datetime("Enter new deadline (YYYY-MM-DD HH:MM) or leave blank: ")
+                    new_deadline = self.get_valid_datetime()
                     if new_deadline is not None:
                         selected_task["deadline"] = new_deadline.strftime("%Y-%m-%d %H:%M")
-                        self.save_history(selected_project["project_id"], "Deadline Changed", selected_task["title"], 
-                                      selected_task["deadline"], username, datetime.now())
-                        print("[bold green]Deadline changed successfully.[/bold green]")
+                        self.save_history(selected_project["project_id"], "Deadline Changed", selected_task["title"],
+                                          selected_task["deadline"], username, datetime.now())
+                        console.print("Deadline changed successfully.", justify='center', style='bold green')
                         logger.info(f"Deadline of {selected_task} changed to {new_deadline}.")
-                        input("Press Enter to continue...")
+                        console.print("Press Enter to continue...", justify='center', style='bold white')
+                        input()
                         clear_screen()
                     else:
-                        print("Error: Deadline remains unchanged.")
+                        console.print("Error: Deadline remains unchanged.", justify='center', style='bold red')
                         logging.info("Error: Deadline remains unchanged.")
-                        input("Press Enter to continue...")
+                        console.print("Press Enter to continue...", justify='center', style='bold white')
+                        input()
                         clear_screen()
                 else:
-                    print("Error: You are not allowed to change this section.")
+                    console.print("Error: You are not allowed to change this section.", justify='center',
+                                  style='bold red')
                     logging.info("Error: You are not allowed to change this section.")
-                    input("Press Enter to continue...")
+                    console.print("Press Enter to continue...", justify='center', style='bold white')
+                    input()
                     clear_screen()
                     return
-            
+
             elif choice == '6':
                 clear_screen()
+                console.print("Change Priority: ", justify='center', style='blink bold blue')
                 if username == selected_project["owner"] or username in selected_task["assignees"]:
-                    print("Select Priority:")
-                    print("1. CRITICAL")
-                    print("2. HIGH")
-                    print("3. MEDIUM")
-                    print("4. LOW")
+                    console.print("\nSelect Priority:", justify='center', style='bold cyan')
+                    console.print("  ", justify='center')
+                    console.print("1. CRITICAL", justify='center', style='bold yellow')
+                    console.print("  ", justify='center')
+                    console.print("2. HIGH", justify='center', style='bold yellow')
+                    console.print("  ", justify='center')
+                    console.print("3. MEDIUM", justify='center', style='bold yellow')
+                    console.print("  ", justify='center')
+                    console.print("4. LOW", justify='center', style='bold yellow')
+                    console.print("  ", justify='center')
+                    console.print("Choose priority (1-4) or press Enter to keep current priority: ", justify='center',
+                                  style='white')
+                    new_priority_choice = input()
 
-                    new_priority_choice = input("Choose priority (1-4) or press Enter to keep current priority: ")
-        
                     if new_priority_choice.isdigit() and 1 <= int(new_priority_choice) <= 4:
                         new_priority = {
                             '1': Priority.CRITICAL,
@@ -1155,37 +1470,54 @@ class TaskManager:
                             '4': Priority.LOW
                         }[new_priority_choice]
                         selected_task["priority"] = new_priority.value
-                        self.save_history(selected_project["project_id"], "Priority Changed", selected_task["title"], 
-                                  new_priority.name, username, datetime.now())
-                        print("[bold green]Priority changed successfully.[/bold green]")
+                        self.save_history(selected_project["project_id"], "Priority Changed", selected_task["title"],
+                                          new_priority.name, username, datetime.now())
+                        console.print("Priority changed successfully.", justify='center', style='bold green')
                         logger.info(f"Priority of task {selected_task} changed to {new_priority}")
                     elif new_priority_choice == "":
-                        print("Keeping current priority.")
+                        console.print("Keeping current priority.", justify='center', style='bold red')
                         logging.info("Keeping current priority.")
                     else:
-                        print("[bold red]Error: Invalid priority choice. Please choose a number between 1 and 4.[/bold red]")
+                        console.print("Error: Invalid priority choice. Please choose a number between 1 and 4.",
+                                      justify='center', style='bold red')
                         logging.info("Error: Invalid priority choice.")
+                        console.print("Press Enter to continue...", justify='center', style='bold white')
+                        input()
+                        clear_screen()
+                        continue
+
+
 
                 else:
-                    print("Error: You are not allowed to change this section.")
+                    console.print("Error: You are not allowed to change this section.", justify='center',
+                                  style='bold red')
                     logging.info("Error: You are not allowed to change this section.")
 
-                input("Press Enter to continue...")
+                console.print("Press Enter to continue...", justify='center', style='bold white')
+                input()
                 clear_screen()
 
 
             elif choice == '7':
                 clear_screen()
+                console.print("Change Priority: ", justify='center', style='blink bold magenta')
                 if username == selected_project["owner"] or username in selected_task["assignees"]:
-                    print("Select Status:")
-                    print("1. BACKLOG")
-                    print("2. TODO")
-                    print("3. DOING")
-                    print("4. DONE")
-                    print("5. ARCHIVED")
+                    console.print("\nSelect Status:", justify='center', style='bold cyan')
+                    console.print("  ", justify='center')
+                    console.print("1. BACKLOG", justify='center', style='bold yellow')
+                    console.print("  ", justify='center')
+                    console.print("2. TODO", justify='center', style='bold yellow')
+                    console.print("  ", justify='center')
+                    console.print("3. DOING", justify='center', style='bold yellow')
+                    console.print("  ", justify='center')
+                    console.print("4. DONE", justify='center', style='bold yellow')
+                    console.print("  ", justify='center')
+                    console.print("5. ARCHIVED", justify='center', style='bold yellow')
 
-                    new_status_choice = input("Choose status (1-5) or press Enter to keep current status: ")
-        
+                    console.print("\nChoose status (1-5) or press Enter to keep current status: ", justify='center',
+                                  style='white')
+                    new_status_choice = input()
+
                     if new_status_choice.isdigit() and 1 <= int(new_status_choice) <= 5:
                         new_status = {
                             '1': Status.BACKLOG,
@@ -1195,121 +1527,159 @@ class TaskManager:
                             '5': Status.ARCHIVED
                         }[new_status_choice]
                         selected_task["status"] = new_status.value
-                        self.save_history(selected_project["project_id"], "Status Changed", selected_task["title"], 
-                                  new_status.name, username, datetime.now())
-                        print("[bold green]Status changed successfully.[/bold green]")
+                        self.save_history(selected_project["project_id"], "Status Changed", selected_task["title"],
+                                          new_status.name, username, datetime.now())
+                        console.print("Status changed successfully.", justify='center', style='bold green')
                         logger.info(f"Status of task {selected_task} changed to {new_status}")
                     elif new_status_choice == "":
-                        print("Keeping current status.")
+                        console.print("Keeping current status.", justify='center', style='bold red')
                         logging.info("Keeping current status.")
                     else:
-                        print("[bold red]Error: Invalid status choice. Please choose a number between 1 and 5.[/bold red]")
+                        console.print("Error: Invalid status choice. Please choose a number between 1 and 5.",
+                                      justify='center', style='bold red')
                         logging.info("Error: Invalid status choice.")
+                        console.print("Press Enter to continue...", justify='center', style='bold white')
+                        input()
+                        break
+                        clear_screen()
+
 
                 else:
-                    print("[bold red]Error: You are not allowed to change this section.[/bold red]")
+                    console.print("Error: You are not allowed to change this section.", justify='center',
+                                  style='bold red')
                     logging.info("Error: You are not allowed to change this section.")
-        
-                input("Press Enter to continue...")
+
+                console.print("Press Enter to continue...", justify='center', style='bold white')
+                input()
                 clear_screen()
 
             elif choice == '8':
                 clear_screen()
                 while True:
-                    print("Comment Menu:")
-                    print("1. Add Comment")
-                    print("2. Remove Comment")
-                    print("3. Exit")
-
-                    comment_choice = input("Choose an option: ")
+                    console.print("Comment Menu:", justify='center', style='blink bold blue')
+                    console.print("\n1. Add Comment", justify='center', style='white')
+                    console.print("  ", justify='center')
+                    console.print("2. Remove Comment", justify='center', style='white')
+                    console.print("  ", justify='center')
+                    console.print("3. Exit", justify='center', style='white')
+                    console.print("  ", justify='center')
+                    console.print("Choose an option: ", justify='center', style='white')
+                    comment_choice = input()
 
                     if comment_choice not in ['1', '2', '3']:
-                        print("[bold red]Error: Invalid option. Please choose a valid option.[/bold red]")
+                        console.print("Error: Invalid option. Please choose a valid option.", justify='center',
+                                      style='bold red')
                         logging.info("Error: Invalid option. Please choose a valid option.")
-                        input("Press Enter to continue...")
+                        console.print("Press Enter to continue...", justify='center', style='bold white')
+                        input()
                         continue
 
                     if comment_choice == '1':
                         clear_screen()
                         try:
-                            comment_text = input("Enter your comment: ")
+                            console.print("Add Comment: ", justify='center', style='blink bold magenta')
+                            console.print("\nEnter your comment: ", justify='center', style='white')
+                            comment_text = input()
                             if not comment_text:
-                                print("Error: Comment cannot be empty.")
+                                console.print("Error: Comment cannot be empty.", justify='center', style='bold red')
                                 logging.info("Error: Comment cannot be empty.")
-                                input("Press Enter to continue...")
+                                console.print("Press Enter to continue...", justify='center', style='bold white')
+                                input()
                                 continue
                             selected_task["comments"].append({"username": username, "comment": comment_text})
-                            self.save_history(selected_project["project_id"], "Comment Added", selected_task["title"], 
-                                                      comment_text, username, datetime.now())
-                            print("[bold green]Comment added successfully.[/bold green]")
+                            self.save_history(selected_project["project_id"], "Comment Added", selected_task["title"],
+                                              comment_text, username, datetime.now())
+                            console.print("Comment added successfully.", justify='center', style='bold green')
                             logger.info(f"{username} added a comment to {selected_task}")
-                            input("Press Enter to continue...")
+                            console.print("Press Enter to continue...", justify='center', style='bold white')
+                            input()
                             clear_screen()
                         except Exception as e:
-                            print(f"Error adding comment: {e}")
+                            console.print(f"Error adding comment: {e}", justify='center', style='bold red')
                             logging.info(f"Error adding comment: {e}")
-                            input("Press Enter to continue...")
+                            console.print("Press Enter to continue...", justify='center', style='bold white')
+                            input()
                             clear_screen()
 
                     elif comment_choice == '2':
                         clear_screen()
+                        console.print("Remove Comment: ", justify='center', style='blink bold magenta')
                         if not selected_task["comments"]:
-                            print("Error: No comments to remove.")
+                            console.print("Error: No comments to remove.", justify='center', style='bold red')
                             logger.info("Error: No comments to remove.")
-                            input("Press Enter to continue...")
+                            console.print("Press Enter to continue...", justify='center', style='bold white')
+                            input()
                             continue
 
-                        print("Select a comment to remove:")
+                        console.print("\nSelect a comment to remove:", justify='center', style='bold cyan')
                         for index, comment in enumerate(selected_task["comments"], 1):
-                            print(f"{index}. {comment['username']}: {comment['comment']}")
+                            console.print(f"{index}. {comment['username']}: {comment['comment']}", justify='center',
+                                          style='cyan')
+                            console.print("  ", justify='center')
+                            time.sleep(0.5)
 
                         while True:
-                            remove_choice = input("Enter the comment number to remove (or press Enter to cancel): ")
+                            console.print("\nEnter the comment number to remove (or press Enter to cancel): ",
+                                          justify='center', style='white')
+                            remove_choice = input()
                             if remove_choice == "":
                                 break
                             elif re.match("^\d+$", remove_choice):
                                 remove_choice = int(remove_choice) - 1
                                 if 0 <= remove_choice < len(selected_task["comments"]):
                                     comment_to_remove = selected_task["comments"][remove_choice]
-                                    if comment_to_remove["username"] == username or username == selected_project["owner"]:
+                                    if comment_to_remove["username"] == username or username == selected_project[
+                                        "owner"]:
                                         try:
                                             # Remove the comment and save the changes
                                             selected_task["comments"].remove(comment_to_remove)
                                             self.save_history(
-                                                selected_project["project_id"], 
-                                                "Comment Removed", 
+                                                selected_project["project_id"],
+                                                "Comment Removed",
                                                 selected_task["title"],
-                                                comment_to_remove["comment"], 
-                                                username, 
+                                                comment_to_remove["comment"],
+                                                username,
                                                 datetime.now()
                                             )
-                                            print("[bold green]Comment removed successfully.[/bold green]")
+                                            console.print("Comment removed successfully.", justify='center',
+                                                          style='bold green')
                                             logger.info(f"{comment_to_remove} removed successfully.")
-                                            input("Press Enter to continue...")
+                                            console.print("Press Enter to continue...", justify='center',
+                                                          style='bold white')
+                                            input()
                                             clear_screen()
                                             break  # Return to the main comment menu
                                         except Exception as e:
-                                            print(f"Error removing comment: {e}")
+                                            console.print(f"Error removing comment: {e}", justify='center',
+                                                          style='bold red')
                                             logging.info(f"Error removing comment: {e}")
-                                            input("Press Enter to continue...")
+                                            console.print("Press Enter to continue...", justify='center',
+                                                          style='bold white')
+                                            input()
                                             clear_screen()
                                             break
                                     else:
-                                        print("Error: You do not have permission to remove this comment.")
+                                        console.print("Error: You do not have permission to remove this comment.",
+                                                      justify='center', style='bold red')
                                         logging.info("Error: You do not have permission to remove this comment.")
-                                        input("Press Enter to continue...")
+                                        console.print("Press Enter to continue...", justify='center',
+                                                      style='bold white')
+                                        input()
                                         clear_screen()
                                         break
                                 else:
-                                    print("[bold red]Error: Invalid comment number.[/bold red]")
+                                    console.print("Error: Invalid comment number.", justify='center', style='bold red')
                                     logging.info("Error: Invalid comment number.")
-                                    input("Press Enter to continue...")
+                                    console.print("Press Enter to continue...", justify='center', style='bold white')
+                                    input()
                                     clear_screen()
                                     break
                             else:
-                                print("[bold red]Error: Invalid input. Please enter a valid comment number.[/bold red]")
+                                console.print("Error: Invalid input. Please enter a valid comment number.",
+                                              justify='center', style='bold red')
                                 logging.info("Error: Invalid input.")
-                                input("Press Enter to continue...")
+                                console.print("Press Enter to continue...", justify='center', style='bold white')
+                                input()
                                 clear_screen()
 
                     elif comment_choice == '3':
@@ -1318,72 +1688,149 @@ class TaskManager:
             elif choice == '9':
                 clear_screen()
                 self.update_task(selected_task['task_id'], selected_task)
-                print("Task saved and exited.")
+                console.print("Task saved and exited.", justify='center', style='bold green')
                 logger.info(f"Task {selected_task} saved and exited.")
                 return selected_task
             else:
-                print("[bold red]Error: Invalid choice. Please try again.[/bold red]")
+                console.print("Error: Invalid choice. Please try again.", justify='center', style='bold red')
                 logging.info("Error: Invalid choice.")
-                input("Press Enter to continue...")
+                console.print("Press Enter to continue...", justify='center', style='bold white')
+                input()
                 clear_screen()
-    
+
+    def print_delete_task(self):
+        console = Console(width=50)
+        console.print("  ┌┬┐┌─┐┬  ┌─┐┌┬┐┌─┐  ┌┬┐┌─┐┌─┐┬┌─", justify='center', style='blink bold green')
+        console.print("   ││├┤ │  ├┤  │ ├┤    │ ├─┤└─┐├┴┐", justify='center', style='blink bold blue')
+        console.print("  ─┴┘└─┘┴─┘└─┘ ┴ └─┘   ┴ ┴ ┴└─┘┴ ┴\n", justify='center', style='blink bold green')
 
     def delete_task(self, username, selected_project):
+        console = Console(width=50)
+        self.print_delete_task()
         if selected_project['owner'] != username:
-            print("Error: You do not have permission to delete tasks for this project.")
+            console.print("Error: You do not have permission to delete tasks for this project.", justify='center',
+                          style='bold red')
             logging.info("Error: You do not have permission to delete tasks for this project.")
-            input("Press Enter to continue...")
+            console.print("Press Enter to continue...", justify='center', style='bold white')
+            input()
             clear_screen()
             return
 
         project_id = selected_project["project_id"]
-    
+
         # Extract tasks related to the selected project
-        project_tasks = [task for task in self.tasks.values() if isinstance(task, dict) and task.get('project_id') == project_id]
-    
+        project_tasks = [task for task in self.tasks.values() if
+                         isinstance(task, dict) and task.get('project_id') == project_id]
+
         # Filter tasks owned by the user
         user_tasks = [task for task in project_tasks if selected_project.get('owner') == username]
 
         # Check if the user has any tasks in the project
         if not user_tasks:
-            print("Error: You don't have any tasks in your project.")
+            console.print("Error: You don't have any tasks in your project.", justify='center', style='bold red')
             logging.info("Error: You don't have any tasks in your project.")
-            input("Press Enter to continue...")
+            console.print("Press Enter to continue...", justify='center', style='bold white')
+            input()
             return
 
-        print("Select Task to Delete:")
         for index, task in enumerate(user_tasks, 1):
             deadline = datetime.fromisoformat(task['deadline']).strftime("%Y-%m-%d %H:%M:%S")
-            print(f"{index}. {task['title']} - Deadline: {deadline}")
+            console.print(f"{index}. {task['title']} - Deadline: {deadline}", justify='center')
+            console.print("  ", justify='center')
 
         # Prompt user to select a task
-        selected_task_index = input("Enter the number of the task to delete: ")
-        if not selected_task_index.isdigit() or int(selected_task_index) < 1 or int(selected_task_index) > len(user_tasks):
-            print("[bold red]Error: Invalid task selection. Please enter a valid task number.[/bold red]")
+        console.print("\nEnter the number of the task to delete: ", justify='center', style='yellow')
+        selected_task_index = input()
+        if not selected_task_index.isdigit() or int(selected_task_index) < 1 or int(selected_task_index) > len(
+                user_tasks):
+            console.print("Error: Invalid task selection. Please enter a valid task number.", justify='center',
+                          style='bold red')
             logging.info("Error: Invalid task selection.")
-            input("Press Enter to continue...")
+            console.print("Press Enter to continue...", justify='center', style='bold white')
+            input()
             return
 
         selected_task = user_tasks[int(selected_task_index) - 1]
 
         confirm = input(f"Are you sure you want to delete task '{selected_task['title']}'? (y/n): ")
         if confirm.lower() != 'y':
-            print("Error: Task deletion canceled.")
+            console.print("Error: Task deletion canceled.", justify='center', style='bold red')
             logging.info("Error: Task deletion canceled.")
-            input("Press Enter to continue...")
+            console.print("Press Enter to continue...", justify='center', style='bold white')
+            input()
             return
 
         # Remove the task
         del self.tasks[selected_task['task_id']]
         self.save_tasks(self.tasks)
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.save_history(project_id, "Task Deleted", selected_task["title"], selected_task['title'], username, current_time)
-        print("[bold green]Task deleted successfully.[/bold green]")
+        self.save_history(project_id, "Task Deleted", selected_task["title"], selected_task['title'], username,
+                          current_time)
+        console.print("Task deleted successfully.", justify='center', style='bold green')
         logger.info(f"Task '{selected_task['title']}' deleted successfully.")
-        input("Press Enter to continue...")
+        console.print("Press Enter to continue...", justify='center', style='bold white')
+        input()
+
+    def print_tasks_menu(self):
+        console = Console(width=50)
+        console.print("  ╔╦╗┌─┐┌─┐┬┌─┌─┐  ╔╦╗┌─┐┌┐┌┬ ┬", justify='center', style='blink bold black on white underline ')
+        console.print("   ║ ├─┤└─┐├┴┐└─┐  ║║║├┤ ││││ │", justify='center', style='blink bold black on white underline ')
+        console.print("   ╩ ┴ ┴└─┘┴ ┴└─┘  ╩ ╩└─┘┘└┘└─┘", justify='center', style='blink bold black on white underline ')
+
+    def print_task_details(self):
+        console = Console(width=50)
+        console.print("  ┌┬┐┌─┐┌─┐┬┌─  ┌┬┐┌─┐┌┬┐┌─┐┬┬  ┌─┐", justify='center', style='blink bold blue')
+        console.print("   │ ├─┤└─┐├┴┐   ││├┤  │ ├─┤││  └─┐", justify='center', style='blink bold white')
+        console.print("   ┴ ┴ ┴└─┘┴ ┴  ─┴┘└─┘ ┴ ┴ ┴┴┴─┘└─┘", justify='center', style='blink bold blue')
+
+    def print_task_menu(self):
+        console = Console(width=50)
+        console.print("  ╔╦╗┌─┐┌─┐┬┌─  ┌┬┐┌─┐┌┐┌┬ ┬", justify='center', style='blink bold green')
+        console.print("   ║ ├─┤└─┐├┴┐  │││├┤ ││││ │", justify='center', style='blink bold magenta')
+        console.print("   ╩ ┴ ┴└─┘┴ ┴  ┴ ┴└─┘┘└┘└─┘", justify='center', style='blink bold green')
+
+    def print_tasks_status(self):
+        console = Console(width=50)
+        console.print("  ╔╦╗┌─┐┌─┐┬┌─┌─┐  ╔═╗┌┬┐┌─┐┌┬┐┬ ┬┌─┐", justify='center', style='blink bold cyan')
+        console.print("   ║ ├─┤└─┐├┴┐└─┐  ╚═╗ │ ├─┤ │ │ │└─┐", justify='center', style='blink bold yellow')
+        console.print("   ╩ ┴ ┴└─┘┴ ┴└─┘  ╚═╝ ┴ ┴ ┴ ┴ └─┘└─┘", justify='center', style='blink bold cyan')
+
+    def print_task_history(self):
+        console = Console(width=50)
+        console.print("  ┌┬┐┌─┐┌─┐┬┌─  ┬ ┬┬┌─┐┌┬┐┌─┐┬─┐┬ ┬", justify='center', style='blink bold magenta')
+        console.print("   │ ├─┤└─┐├┴┐  ├─┤│└─┐ │ │ │├┬┘└┬┘", justify='center', style='blink bold yellow')
+        console.print("   ┴ ┴ ┴└─┘┴ ┴  ┴ ┴┴└─┘ ┴ └─┘┴└─ ┴ ", justify='center', style='blink bold magenta')
+
+    def view_task_history(self, selected_task):
+        console = Console(width=80)
+        self.print_task_history()
+        try:
+            with open(self.history_file, "r") as file:
+                history = json.load(file)
+                selected_task_history = [change for change in history if
+                                         change["project_id"] == selected_task["project_id"]]
+                for change in selected_task_history:
+                    console.print(f"\nAction: {change['action']}")
+                    console.print(f"Field Name: {change['field_name']}", style='blue')
+                    console.print(f"New Value: {change['new_value']}", style='magenta')
+                    console.print(f"Changer: {change['changer']}", style='yellow')
+
+                    timestamp = change.get('timestamp')
+                    if timestamp:
+                        formatted_time = datetime.fromisoformat(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+                    else:
+                        formatted_time = 'N/A'
+
+                    console.print(f"Timestamp: {formatted_time}", style='red')
+                    print()
+                    print('-' * 40)
+                    print()
+        except FileNotFoundError:
+            console.print("Erorr: No history available for this task.", style='bold red')
+            logging.info(f"Erorr: No history available task {selected_task}.")
 
     def view_tasks(self, selected_project, username):
-        console = Console()
+        console = Console(width=50)
         # Load tasks from tasks.json
         tasks = self.load_tasks()
 
@@ -1393,12 +1840,14 @@ class TaskManager:
             return
 
         # Filter tasks based on project_id
-        project_tasks = [task for task in tasks.values() if isinstance(task, dict) and task.get("project_id") == selected_project.get("project_id")]
+        project_tasks = [task for task in tasks.values() if
+                         isinstance(task, dict) and task.get("project_id") == selected_project.get("project_id")]
 
         if not project_tasks:
-            print("Error: No tasks in this project.")
+            console.print("Error: No tasks in this project.", justify='center', style='bold red')
             logging.info("Error: No tasks in this project.")
-            input("Press Enter to continue...")
+            console.print("Press Enter to continue...", justify='center', style='bold white')
+            input()
             return
 
         # Create a table to display the tasks
@@ -1414,7 +1863,8 @@ class TaskManager:
         for status in table_data:
             table_data[status].extend([""] * (max_length - len(table_data[status])))
 
-        table = Table(title="Tasks Status", box=SIMPLE)
+        self.print_tasks_status()
+        table = Table(box=SIMPLE)
 
         # Adding columns for each status
         for status in table_data.keys():
@@ -1437,17 +1887,20 @@ class TaskManager:
             table.add_row(*row)
 
         console.print(table)
-    
+
         while True:
             try:
-                task_choice = int(input("Enter the number of the task you want to view or edit: "))
+                console.print("Enter the number of the task you want to view or edit: ", justify='center',
+                              style='bold white')
+                task_choice = int(input())
                 if task_choice in label_to_number.values():
                     break
                 else:
-                    print("[bold red]Error: Invalid number. Please enter a valid task number.[/bold red]")
+                    console.print("Error: Invalid number. Please enter a valid task number.", justify='center',
+                                  style='bold red')
                     logging.info("Error: Invalid number.")
             except ValueError:
-                print("[bold red]Error: Invalid input. Please enter a number.[/bold red]")
+                console.print("Error: Invalid input. Please enter a number.", justify='center', style='bold red')
                 logging.info("Error: Invalid input.")
 
         # Get the selected task based on the user's choice
@@ -1457,64 +1910,102 @@ class TaskManager:
         # Display menu for task options
         while True:
             clear_screen()
-            print("Task Menu:")
-            print("1. View Task Details")
-            print("2. Edit Task")
-            print("3. View Task History")
-            print("4. Exit")
-
-            menu_choice = input("Choose an option: ")
+            console = Console(width=50)
+            self.print_task_menu()
+            time.sleep(0.7)
+            console.print("\n1. View Task Details", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("2. Edit Task", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("3. View Task History", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("4. Exit", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("Choose an option: ", justify='center')
+            menu_choice = input()
 
             if menu_choice == '1':
                 clear_screen()
-                
+
                 try:
                     # Display task details
-                    print(f"task_id: {selected_task['task_id']}")
-                    print(f"Label: {selected_task['label']}")
-                    print(f"Title: {selected_task.get('title', 'N/A')}")
-                    print(f"Description: {selected_task.get('description', 'N/A')}")
-                    print(f"Assignees: {', '.join(selected_task['assignees'])}")
-                    deadline = selected_task.get('deadline')
-                    if deadline:
-                        deadline_formatted = datetime.fromisoformat(deadline).strftime("%Y-%m-%d %H:%M")
-                    else:
-                        deadline_formatted = 'N/A'
-                    print(f"Deadline: {deadline_formatted}")
-                    print(f"Priority: {selected_task.get('priority', 'N/A')}")
-                    print(f"Status: {selected_task.get('status', 'N/A')}")
-                    print("Comments:")
+                    self.print_task_details()
+                    table = Table(show_header=True, header_style="bold white")
+                    table.add_column("Field", justify="center", style="cyan")
+                    table.add_column("Value", justify="center")
+
+                    table.add_row("task_id", selected_task['task_id'], style='cyan')
+                    table.add_row()
+                    table.add_row("Label", selected_task['label'], style='white')
+                    table.add_row()
+                    table.add_row("Title", selected_task.get('title', 'N/A'), style='cyan')
+                    table.add_row()
+                    table.add_row("Description", selected_task.get('description', 'N/A'), style='white')
+                    table.add_row()
+                    table.add_row("Assignees", ', '.join(selected_task['assignees']), style='cyan')
+                    table.add_row()
+                    deadline_formatted = datetime.fromisoformat(selected_task.get('deadline')).strftime(
+                        "%Y-%m-%d %H:%M") if selected_task.get('deadline') else 'N/A'
+                    table.add_row("Deadline", deadline_formatted, style='white')
+                    table.add_row()
+                    table.add_row("Priority", selected_task.get('priority', 'N/A'), style='cyan')
+                    table.add_row()
+                    table.add_row("Status", selected_task.get('status', 'N/A'), style='white')
+                    table.add_row()
+                    table.add_row("Comments", "[italic]See below[/italic]", style='cyan')
+                    table.add_row()
                     for comment in selected_task.get('comments', []):
-                        print(f"  {comment['username']}: {comment['comment']}")
-                    input("Press Enter to continue...")
+                        table.add_row("", f"{comment['username']}: {comment['comment']}")
+
+                    console.print(table)
+                    console.print("Press Enter to continue...", justify='center', style='bold white')
+                    input()
                 except KeyError as e:
-                    print(f"Error: Missing key {e}")
+                    console.print(f"Error: Missing key {e}", justify='center', style='bold red')
                     logging.info(f"Error: Missing key {e}")
                     input("Press Enter to continue...")
+
             elif menu_choice == '2':
-                selected_task = self.edit_task(username, selected_project, selected_task)  # Update selected_task with the returned value
+                selected_task = self.edit_task(username, selected_project,
+                                               selected_task)  # Update selected_task with the returned value
             elif menu_choice == '3':
                 clear_screen()
                 self.view_task_history(selected_task)
-                input("Press Enter to continue...")
+                console.print("Press Enter to continue...", justify='center', style='bold white')
+                input()
             elif menu_choice == '4':
                 break
             else:
-                print("[bold red]Error: Invalid choice. Please try again.[/bold red]")
-                input("Press Enter to continue...")
+                console.print("Error: Invalid choice. Please try again.", justify='center', style='bold red')
+                console.print("Press Enter to continue...", justify='center', style='bold white')
+                input()
                 logging.info("Error: Invalid choice.")
 
     def tasks_menu(self, username, selected_project):
+        console = Console(width=50)
         project_manager = ProjectManager()
         while True:
             clear_screen()
-            print("Tasks Menu:")
-            print("1. Create Task")
-            print("2. View Task")
-            print("3. Delete Task")
-            print("4. Exit")
-
-            choice = input("Choose an option: ")
+            self.print_tasks_menu()
+            print()
+            console.print("[black]1. [/black]Create Task", justify='center', style='bold magenta on white')
+            console.print("  ", justify='center')
+            time.sleep(1)
+            console.print("[black]2. [/black]View Task", justify='center', style='bold magenta on white')
+            console.print("  ", justify='center')
+            time.sleep(1)
+            console.print("[black]3. [/black]Delete Task", justify='center', style='bold magenta on white')
+            console.print("  ", justify='center')
+            time.sleep(1)
+            console.print("[black]4. [/black]Exit", justify='center', style='bold magenta on white')
+            console.print("  ", justify='center')
+            time.sleep(1)
+            console.print("Choose an option: ", justify='center', style='bold white on black')
+            choice = input()
             clear_screen()
 
             if choice == '1':
@@ -1526,40 +2017,46 @@ class TaskManager:
             elif choice == '4':
                 break
             else:
-                print("[bold red]Error: Invalid choice. Please try again.[/bold red]")
+                console.print("Error: Invalid choice. Please try again.", justify='center', style='bold red')
                 logging.info("Error: Invalid choice.")
-                input("Press Enter to continue...")
+                console.print("Press Enter to continue...", justify='center', style='bold white')
+                input()
                 clear_screen()
                 continue
-
-    def view_task_history(self, selected_task):
-        try:
-            with open(self.history_file, "r") as file:
-                history = json.load(file)
-                selected_task_history = [change for change in history if change["project_id"] == selected_task["project_id"]]
-                for change in selected_task_history:
-                    print(f"Action: {change['action']}")
-                    print(f"Field Name: {change['field_name']}")
-                    print(f"New Value: {change['new_value']}")
-                    print(f"Changer: {change['changer']}")
-                
-                
-                    timestamp = change.get('timestamp')
-                    if timestamp:
-                        formatted_time = datetime.fromisoformat(timestamp).strftime("%Y-%m-%d %H:%M:%S")
-                    else:
-                        formatted_time = 'N/A'
-                
-                    print(f"Timestamp: {formatted_time}")
-                    print()
-        except FileNotFoundError:
-            print("[bold red]Erorr: No history available for this task.[/bold red]")
-            logging.info(f"Erorr: No history available task {selected_task}.")
 
 
 def main():
     user_manager = UserManager()
+
+    def update_screen(end_time, loop, screen):
+        screen.draw_next_frame()
+        if loop.time() < end_time:
+            loop.call_later(0.05, update_screen, end_time, loop, screen)
+        else:
+            loop.stop()
+
+    # Define the scene that you'd like to play.
+    screen = Screen.open()
+    effects = [
+        Cycle(
+            screen,
+            FigletText("Trellomize", font='big'),
+            screen.height // 2 - 8),
+        Stars(screen, (screen.width + screen.height) // 2)
+    ]
+    screen.set_scenes([Scene(effects, 500)])
+
+    # Schedule the first call to display_date()
+    loop = asyncio.new_event_loop()
+    end_time = loop.time() + 5.0
+    loop.call_soon(update_screen, end_time, loop, screen)
+
+    # Blocking call interrupted by loop.stop()
+    loop.run_forever()
+    loop.close()
+    screen.close()
     user_manager.menu()
+
 
 if __name__ == "__main__":
     main()
