@@ -10,7 +10,6 @@ from rich import print
 import json
 from rich import print
 from typing import List
-import os
 from enum import Enum
 import uuid
 import re
@@ -48,6 +47,7 @@ class UserManager:
         with open(self.users_file, "w") as file:
             json.dump(users, file, indent=4)
 
+#load users from json 
     def load_users(self):
         try:
             with open(self.users_file, "r") as file:
@@ -55,6 +55,7 @@ class UserManager:
         except FileNotFoundError:
             return {}
 
+#creat user in signup section 
     def create_user(self, email, username, password):
         users = self.load_users()
         users[username] = {"email": email, "username": username, "password": password, "active": True}
@@ -105,7 +106,7 @@ class UserManager:
         while not email.endswith("@gmail.com"):
             print("[bold red]Error: Invalid email format![/bold red]"
                   "\n[cyan]Valid example: iust@gmail.com[/cyan]")
-            logging.info("Error: Invalid email format!")
+            logger.info("Error: Invalid email format!")
 
             input("Press Enter to continue...")
             clear_screen()
@@ -113,7 +114,7 @@ class UserManager:
             console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
             email = input()
         return email
-
+#checking password condition
     def is_valid_password(self, email, username):
         console = Console(width=50)
         console.print("\nEnter your password: ", justify='left', style="blink bold blue")
@@ -127,7 +128,7 @@ class UserManager:
                   "\nat least one lowercase letter, "
                   "\nat least one number, "
                   "\nand at least one of the characters '~@#$!%^&*?'[/bold red]")
-            logging.info("Invalid password!")
+            logger.info("Invalid password!")
 
             print("[cyan]Valid example: Iust@ac1[/cyan]")
             input("Press Enter to continue...")
@@ -142,7 +143,7 @@ class UserManager:
             password = input()
 
         return (password, email, username)
-
+#function for signup section 
     def sign_up(self):
         console = Console(width=50)
         users = self.load_users()
@@ -153,7 +154,7 @@ class UserManager:
 
         while any(user_data['email'] == email for user_data in users.values()):
             print("[bold red]Error: Email already exists![/bold red]")
-            logging.info("Error: Email already exists!")
+            logger.info("Error: Email already exists!")
             input("Press Enter to continue...")
             clear_screen()
             self.print_sign_up()
@@ -169,7 +170,7 @@ class UserManager:
 
         while username in users:
             print("[bold red]Error: Username already exists![/bold red]")
-            logging.info("Error: Username already exists!")
+            logger.info("Error: Username already exists!")
             input("Press Enter to continue...")
             clear_screen()
             self.print_sign_up()
@@ -199,7 +200,7 @@ class UserManager:
 
         while password != confirm_password:
             print("[bold red]Error: Passwords do not match![/bold red]")
-            logging.info("Error: Passwords do not match!")
+            logger.info("Error: Passwords do not match!")
             input("Press Enter to continue...")
             clear_screen()
             self.print_sign_up()
@@ -220,7 +221,7 @@ class UserManager:
             console.print("\nConfirm your password: ", justify='left', style="blink bold magenta")
             confirm_password = input()
 
-        # Hash the password using SHA-256
+        # Hashing password 
         hashed_password = hashlib.sha256(password.encode()).hexdigest()
 
         clear_screen()
@@ -237,7 +238,7 @@ class UserManager:
         users[username] = {"email": email, "username": username, "password": hashed_password, "active": True}
         self.save_users(users)
         print("[bold green]\nAccount created successfully![/bold green]")
-        logging.info("Account created successfully")
+        logger.info("Account created successfully")
         input("Press Enter to continue...")
         self.create_user(email, username, hashed_password)
         clear_screen()
@@ -265,7 +266,7 @@ class UserManager:
             print("\n")
             console.print("********", overflow=overflow_p, justify='center', style="blink bold cyan")
             print("\n")
-
+#function for login section 
     def login(self):
         console = Console(width=50)
         users = self.load_users()
@@ -291,7 +292,7 @@ class UserManager:
 
         if any(user["username"] == username and user["password"] == hashed_password for user in users.values()):
             print("[bold green]\nLogin successful![/bold green]")
-            logging.info("Login successful!")
+            logger.info("Login successful!")
             input("Press Enter to continue...")
             clear_screen()
             self.print_account(users[username]['email'], username, users[username]['password'], console)
@@ -300,7 +301,7 @@ class UserManager:
             project_manager.account(username)
         else:
             print("[bold red]Error: Invalid username or password![/bold red]")
-            logging.info("Error: Invalid username or password!")
+            logger.info("Error: Invalid username or password!")
             print(f"[cyan]Do you have an account?(y/n)[/cyan]")
             answer = input()
             if answer.lower() == 'y':
@@ -312,9 +313,9 @@ class UserManager:
             else:
                 clear_screen()
                 print("[bold red]Error: Invalid input! [/bold red]")
-                logging.info("Error: Invalid input!")
+                logger.info("Error: Invalid input!")
                 clear_screen()
-
+#first menu 
     def menu(self):
         clear_screen()
         while True:
@@ -344,7 +345,7 @@ class UserManager:
                             screen.clear()
                             screen.refresh()
                             screen.close()  # Close the screen
-                            loop.stop()  # Stop the event loop
+                            loop.stop()  
                             return
 
                         screen.print_at('EXIT!',
@@ -365,7 +366,7 @@ class UserManager:
                 exit()
             else:
                 print("[bold red]Error: Invalid choice. Please enter 1, 2, or 3.[/bold red]")
-                logging.info("Error: Invalid choice.")
+                logger.info("Error: Invalid choice.")
                 input("Press Enter to continue...")
                 clear_screen()
 
@@ -381,16 +382,17 @@ class ProjectManager:
     def __init__(self, projects_file="Account/projects.json"):
         self.projects_file = projects_file
 
+#saving project in json 
     def save_projects(self, projects):
         with open(self.projects_file, "w") as file:
             json.dump(projects, file, indent=4)
-
+#reading project from json
     def load_projects(self):
         try:
             with open(self.projects_file, "r") as file:
                 data = file.read()
                 if not data:
-                    return {}  # Return an empty dictionary if the file is empty
+                    return {} #for empty file
                 return json.loads(data)
         except FileNotFoundError:
             return {}
@@ -408,32 +410,33 @@ class ProjectManager:
     def create_project(self, project_id, title, owner):
         projects = self.load_projects()
 
-        # Check if project_id or title is empty
+        # Check if projectid or title is empty
         if not project_id or not title:
             print("[bold red]Error: Project ID and title cannot be empty![/bold red]")
+            logger.error("Erorr: Error: Project ID and title cannot be empty!")
             input("Press Enter to continue...")
             clear_screen()
             return None
 
-        # Check if the project_id already exists
+        # Check if the project_id exists
         if project_id in projects:
             print("[bold red]Erorr: Project ID already exists! Please choose a different one.[/bold red]")
-            logging.info(f"Erorr: Project ID {project_id} already exists!")
+            logger.error(f"Erorr: Project ID {project_id} already exists!")
             input("Press Enter to continue...")
             clear_screen()
             return None
 
-        # Check if the project with the same title already exists for the owner
+        # Check if the project exists for the owner
         for proj in projects.values():
             if proj["title"] == title and proj.get("owner") == owner:
                 print(
                     "[bold red]Erorr: You already have a project with the same title! Please choose a different title.[/bold red]")
-                logging.error(f"You already have a project with the same title: {title} owned by {owner}!")
+                logger.error(f"Erorr:You already have a project with the same title: {title} owned by {owner}!")
                 input("Press Enter to continue...")
                 clear_screen()
                 return None
 
-        # If all checks pass, create the project
+        #all tests pass create the project
         print("[bold green]Project created successfully![/bold green]")
         logger.info(f"{owner} created project {title} successfully.")
         input("Press Enter to continue...")
@@ -441,7 +444,8 @@ class ProjectManager:
         projects[project_id] = {"title": title, "project_id": project_id, "owner": owner}
         self.save_projects(projects)
         return Project(project_id, title, owner)
-
+        
+        #deleting project 
     def delete_project(self, owner):
         selected_project = self.select_project(owner)
         if selected_project is None:
@@ -459,7 +463,7 @@ class ProjectManager:
             return True
         else:
             print("Deletion canceled.")
-            logger.info(f"[bold red]Error: project {selected_project['title']} Deletion canceled.[/bold red]")
+            logger.error(f"[bold red]Error: project {selected_project['title']} Deletion canceled.[/bold red]")
             input("Press Enter to continue...")
             clear_screen()
             return False
@@ -470,6 +474,7 @@ class ProjectManager:
         console.print("  ├─┤ ││ ││  │││├┤ │││├┴┐├┤ ├┬┘", justify='center', style="blink bold cyan")
         console.print("  ┴ ┴─┴┘─┴┘  ┴ ┴└─┘┴ ┴└─┘└─┘┴└─", justify='center', style="blink bold magenta")
 
+    #adding member to project
     def add_member_to_project(self, project_id, member, username):
         user_manager = UserManager()
         projects = self.load_projects()
@@ -492,25 +497,25 @@ class ProjectManager:
                     else:
                         print(
                             f"[bold red]Erorr: Member '{member}' is already a member of project '{project['title']}'.[/bold red]")
-                        logging.info(f"Erorr: Member '{member}' is already a member of project '{project['title']}'.")
+                        logger.error(f"Erorr: Member '{member}' is already a member of project '{project['title']}'.")
                         print("Press Enter to continue...")
                         input()
                         clear_screen()
                 else:
                     print("[bold red]Erorr: User not found![/bold red]")
-                    logging.error(f"Erorr: User '{member}' not found!")
+                    logger.error(f"Erorr: User '{member}' not found!")
                     print("Press Enter to continue...")
                     input()
                     clear_screen()
             else:
                 print("[bold red]Erorr: You are not the owner of this project![/bold red]")
-                logging.info("Erorr: You are not the owner of this project!")
+                logger.error("Erorr: You are not the owner of this project!")
                 print("Press Enter to continue...")
                 input()
                 clear_screen()
         else:
             print(f"[bold red]Erorr: Project with ID '{project_id}' not found.[/bold red]")
-            logging.info(f"Erorr: Project with ID '{project_id}' not found.")
+            logger.error(f"Erorr: Project with ID '{project_id}' not found.")
             print("Press Enter to continue...")
             input()
             clear_screen()
@@ -523,7 +528,7 @@ class ProjectManager:
                       style="blink bold yellow")
         console.print("  ╩ ╩└─┘┴ ┴└─┘└─┘┴└─└─┘  └─┘└    ┴  ┴└─└─┘└┘└─┘└─┘ ┴ ", justify='left',
                       style="blink bold magenta")
-
+    #remove members
     def remove_member_from_project(self, project_id, username):
         console = Console(width=50)
         projects = self.load_projects()
@@ -532,7 +537,7 @@ class ProjectManager:
             if project["owner"] == username:
                 if "members" in project:
                     self.print_members_of_project()
-
+                    #making table 
                     table = Table(padding=(0, 10, 0, 10))
                     table.add_column("No.", justify="center", style="bold yellow")
                     table.add_column("Member", justify="center", style="bold magenta")
@@ -547,7 +552,7 @@ class ProjectManager:
                         choice = input()
                         if not choice.isdigit() or int(choice) < 1 or int(choice) > len(project["members"]):
                             print("[bold red]Error: Invalid choice! Please enter a valid number.[/bold red]")
-                            logging.info("Error: Invalid choice! Please enter a valid number.")
+                            logger.error("Error: Invalid choice! Please enter a valid number.")
                             input("Press Enter to continue...")
                             clear_screen()
                             self.print_members_of_project()
@@ -569,42 +574,42 @@ class ProjectManager:
 
                         else:
                             print("[bold red]Error: Remove canceled.[/bold red]")
-                            logging.info("Error: Remove canceled.")
+                            logger.error("Error: Remove canceled.")
                             clear_screen()
                             return False
 
                 else:
                     print("[bold red]Error: This project has no members.[/bold red]")
-                    logging.info("Error: This project has no members.")
+                    logger.error("Error: This project has no members.")
                     clear_screen()
             else:
                 print("[bold red]Error: You are not the owner of this project![/bold red]")
-                logging.info(f"Error: You are not the owner of project '{project['title']}'!")
+                logger.error(f"Error: You are not the owner of project '{project['title']}'!")
                 input("Press Enter to continue...")
                 clear_screen()
         else:
             print(f"[bold red]Error: Project with ID '{project_id}' not found.[/bold red]")
-            logging.info(f"Error: Project with ID '{project_id}' not found.")
+            logger.error(f"Error: Project with ID '{project_id}' not found.")
             input("Press Enter to continue...")
             clear_screen()
 
     def view_projects(self, username):
         projects = self.load_projects()
 
-        # Create a table with four columns: Project Title, Owner, Role, and Members
-        self.print_your_projects()
+        # Create a table 
+        self.print_your_proects()
         table = Table(show_header=True, header_style="bold magenta")
         table.add_column("Project Title", justify="center", style="cyan")
         table.add_column("Owner", justify="center", style="cyan")
         table.add_column("Role", justify="center", style="cyan")
-        table.add_column("Members", justify="center", style="cyan")  # New column for members
+        table.add_column("Members", justify="center", style="cyan")  
 
         for proj_id, proj in projects.items():
-            members = ', '.join(proj.get("members", []))  # Joining members with comma separator
-            # Check if the user is the owner of the project
+            members = ', '.join(proj.get("members", []))  
+            
             if proj["owner"] == username:
                 table.add_row(proj["title"], "You", "Owner", members)
-            # Check if the user is a member of the project
+
             elif "members" in proj and username in proj["members"]:
                 table.add_row(proj["title"], proj["owner"], "Member", members)
 
@@ -618,7 +623,7 @@ class ProjectManager:
 
         if not owner_projects:
             console.print("[bold red]Error: You are not associated with any projects.[/bold red]")
-            logging.info("Error: You are not associated with any projects.")
+            logger.info("Error: You are not associated with any projects.")
             input("Press Enter to continue...")
             clear_screen()
             return None
@@ -645,14 +650,14 @@ class ProjectManager:
                     break
                 else:
                     console.print("[bold red]Error: Invalid project choice.[/bold red]")
-                    logging.info("Error: Invalid project choice")
+                    logger.info("Error: Invalid project choice")
                     input("Press Enter to continue...")
                     clear_screen()
                     self.print_your_projects()
                     console.print(table)
             else:
                 console.print("[bold red]Error: Please enter a valid project number.[/bold red]")
-                logging.info("Error: Invalid project number")
+                logger.info("Error: Invalid project number")
                 input("Press Enter to continue...")
                 clear_screen()
                 self.print_your_projects()
@@ -669,7 +674,7 @@ class ProjectManager:
 
         if not person_projects:
             console.print("[bold red]Error: You are not associated with any projects.[/bold red]")
-            logging.info("Error: You are not associated with any projects.")
+            logger.info("Error: You are not associated with any projects.")
             input("Press Enter to continue...")
             clear_screen()
             return None
@@ -695,14 +700,14 @@ class ProjectManager:
                     break
                 else:
                     console.print("[bold red]Error: Invalid project choice[/bold red]")
-                    logging.info("Error: Invalid project choice")
+                    logger.info("Error: Invalid project choice")
                     input("Press Enter to continue...")
                     clear_screen()
                     self.print_your_projects()
                     console.print(table)
             else:
                 console.print("[bold red]Please enter a valid project number.[/bold red]")
-                logging.info("Please enter a valid project number.")
+                logger.info("Please enter a valid project number.")
                 input("Press Enter to continue...")
                 clear_screen()
                 self.print_your_projects()
@@ -853,7 +858,7 @@ class ProjectManager:
                 break
             else:
                 print("[bold red]Error: Invalid choice. Please try again.[/bold red]")
-                logging.info("Error: Invalid choice.")
+                logger.info("Error: Invalid choice.")
                 input("Press Enter to continue...")
                 clear_screen()
                 continue
@@ -906,7 +911,7 @@ class TaskManager:
                 tasks = json.load(file)
                 if not isinstance(tasks, dict):
                     print("Error: Loaded tasks are not in the expected format.")
-                    logging.info("Error: Loaded tasks are not in the expected format.")
+                    logger.info("Error: Loaded tasks are not in the expected format.")
                     return {}
                 return tasks
         except FileNotFoundError:
@@ -960,14 +965,14 @@ class TaskManager:
                 if datetime_obj < datetime.now():
                     console.print("\nError: Invalid date and time. It should be in the future.", justify='center',
                                   style='red')
-                    logging.info("Error: Invalid date and time. It should be in the future.")
+                    logger.info("Error: Invalid date and time. It should be in the future.")
                     continue
                 return datetime_obj
             except ValueError:
                 console.print(
                     "\nError: Invalid date format. Please enter the date and time in the format YYYY-MM-DD HH:MM.",
                     justify='center', style='red')
-                logging.info(
+                logger.info(
                     "Error: Invalid date format. Please enter the date and time in the format YYYY-MM-DD HH:MM.")
 
     def print_create_task(self):
@@ -989,7 +994,7 @@ class TaskManager:
         if selected_project['owner'] != username:
             console.print("Error: You do not have permission to create tasks for this project.", justify='center',
                           style='red')
-            logging.info("Error: You do not have permission to create tasks for this project.")
+            logger.info("Error: You do not have permission to create tasks for this project.")
             input("Press Enter to continue...")
             clear_screen()
             return
@@ -1006,7 +1011,7 @@ class TaskManager:
             else:
                 console.print("Error: Task label cannot be empty. Please enter a label.", justify='center',
                               style='bold red')
-                logging.info("Error: Task label cannot be empty.")
+                logger.info("Error: Task label cannot be empty.")
                 console.print("Press Enter to continue...", justify='center', style='white')
                 input()
                 clear_screen()
@@ -1021,7 +1026,7 @@ class TaskManager:
             end_datetime = start_datetime + timedelta(days=1)
         elif end_datetime < start_datetime:
             console.print("Error: Invalid deadline. It should be after the start time.", justify='center', style='red')
-            logging.info("Error: Invalid deadline. It should be after the start time.")
+            logger.info("Error: Invalid deadline. It should be after the start time.")
             return
 
         selected_members = []
@@ -1038,7 +1043,7 @@ class TaskManager:
             if not member_choices:
                 console.print("No members selected for the task. You can add members later.", justify='center',
                               style='bold red')
-                logging.info("Error: No members selected for the task. You can add members later.")
+                logger.info("Error: No members selected for the task. You can add members later.")
                 console.print("Do you want to proceed without assigning any members? (y/n): ", justify='center',
                               style='red underline')
                 proceed = input()
@@ -1054,7 +1059,7 @@ class TaskManager:
                 else:
                     console.print("Error: Invalid member choice.", justify='center', style='bold red')
 
-                    logging.info("Error: Invalid member choice.")
+                    logger.info("Error: Invalid member choice.")
                     invalid_choice = True
                     break
             if not invalid_choice:
@@ -1087,7 +1092,7 @@ class TaskManager:
             else:
                 console.print("Error: Invalid input. Please choose a priority between 1 and 4.", justify='center',
                               style='bold red')
-                logging.info("Error: Invalid input.")
+                logger.info("Error: Invalid input.")
 
         console.print(f"Selected priority: {selected_priority}\n", justify='center', style='blink bold cyan')
 
@@ -1119,7 +1124,7 @@ class TaskManager:
             else:
                 console.print("Error: Invalid input. Please choose a status between 1 and 5.", justify='center',
                               style='bold red')
-                logging.info("Error: Invalid input.")
+                logger.info("Error: Invalid input.")
 
         console.print(f"Selected status: {selected_status}\n", justify='center', style='blink bold cyan')
         console.print("Enter comments for the task: ", justify='center', style='white underline')
@@ -1145,7 +1150,7 @@ class TaskManager:
         self.save_history(project_id, "Task Created", label, title, username, datetime.now())
 
         console.print("Task created successfully!", justify='center', style='bold green')
-        logging.info("Task created successfully!")
+        logger.info("Task created successfully!")
         console.print("Press Enter to continue...", justify='center', style='bold white')
         input()
         clear_screen()
@@ -1313,7 +1318,7 @@ class TaskManager:
                             if not available_assignees:
                                 console.print("Error: There are no available assignees to add.", justify='center',
                                               style='bold red')
-                                logging.info("There are no available assignees to add.")
+                                logger.info("There are no available assignees to add.")
                                 console.print("Press Enter to continue...", justify='center', style='bold white')
                                 input()
                                 clear_screen()
@@ -1336,7 +1341,7 @@ class TaskManager:
                                     selected_task["assignees"].append(available_assignees[index])
                                 else:
                                     console.print("Error: Invalid assignee choice.", justify='center', style='bold red')
-                                    logging.info("Error: Invalid assignee choice.")
+                                    logger.info("Error: Invalid assignee choice.")
                                     console.print("Press Enter to continue...", justify='center', style='bold white')
                                     input()
                                     clear_screen()  # Restart the loop to get input again
@@ -1359,7 +1364,7 @@ class TaskManager:
                             if not selected_task["assignees"]:
                                 console.print("Error: There are no assignees to remove.", justify='center',
                                               style='bold red')
-                                logging.info("Error: There are no assignees to remove.")
+                                logger.info("Error: There are no assignees to remove.")
                                 console.print("Press Enter to continue...", justify='center', style='bold white')
                                 input()
                                 clear_screen()
@@ -1381,7 +1386,7 @@ class TaskManager:
                                     removed_assignees.append(selected_task["assignees"].pop(index))
                                 else:
                                     console.print("Error: Invalid assignee choice.", justify='center', style='bold red')
-                                    logging.info("Error: Invalid assignee choice.")
+                                    logger.info("Error: Invalid assignee choice.")
                                     console.print("Press Enter to continue...", justify='center', style='bold white')
                                     input()
                                     clear_screen()
@@ -1402,7 +1407,7 @@ class TaskManager:
                             break  # Exit the loop and return to the main menu
                         else:
                             console.print("Error: Invalid choice.", justify='center', style='bold red')
-                            logging.info("Error: Invalid choice.")
+                            logger.info("Error: Invalid choice.")
                             console.print("Press Enter to continue...", justify='center', style='bold white')
                             input()
                             clear_screen()
@@ -1410,7 +1415,7 @@ class TaskManager:
                 else:
                     console.print("Error: You are not allowed to change this section.", justify='center',
                                   style='bold red')
-                    logging.info("Error: You are not allowed to change this section.")
+                    logger.info("Error: You are not allowed to change this section.")
                     console.print("Press Enter to continue...", justify='center', style='bold white')
                     input()
                     return
@@ -1431,14 +1436,14 @@ class TaskManager:
                         clear_screen()
                     else:
                         console.print("Error: Deadline remains unchanged.", justify='center', style='bold red')
-                        logging.info("Error: Deadline remains unchanged.")
+                        logger.info("Error: Deadline remains unchanged.")
                         console.print("Press Enter to continue...", justify='center', style='bold white')
                         input()
                         clear_screen()
                 else:
                     console.print("Error: You are not allowed to change this section.", justify='center',
                                   style='bold red')
-                    logging.info("Error: You are not allowed to change this section.")
+                    logger.info("Error: You are not allowed to change this section.")
                     console.print("Press Enter to continue...", justify='center', style='bold white')
                     input()
                     clear_screen()
@@ -1476,11 +1481,11 @@ class TaskManager:
                         logger.info(f"Priority of task {selected_task} changed to {new_priority}")
                     elif new_priority_choice == "":
                         console.print("Keeping current priority.", justify='center', style='bold red')
-                        logging.info("Keeping current priority.")
+                        logger.info("Keeping current priority.")
                     else:
                         console.print("Error: Invalid priority choice. Please choose a number between 1 and 4.",
                                       justify='center', style='bold red')
-                        logging.info("Error: Invalid priority choice.")
+                        logger.info("Error: Invalid priority choice.")
                         console.print("Press Enter to continue...", justify='center', style='bold white')
                         input()
                         clear_screen()
@@ -1491,7 +1496,7 @@ class TaskManager:
                 else:
                     console.print("Error: You are not allowed to change this section.", justify='center',
                                   style='bold red')
-                    logging.info("Error: You are not allowed to change this section.")
+                    logger.info("Error: You are not allowed to change this section.")
 
                 console.print("Press Enter to continue...", justify='center', style='bold white')
                 input()
@@ -1533,11 +1538,11 @@ class TaskManager:
                         logger.info(f"Status of task {selected_task} changed to {new_status}")
                     elif new_status_choice == "":
                         console.print("Keeping current status.", justify='center', style='bold red')
-                        logging.info("Keeping current status.")
+                        logger.info("Keeping current status.")
                     else:
                         console.print("Error: Invalid status choice. Please choose a number between 1 and 5.",
                                       justify='center', style='bold red')
-                        logging.info("Error: Invalid status choice.")
+                        logger.info("Error: Invalid status choice.")
                         console.print("Press Enter to continue...", justify='center', style='bold white')
                         input()
                         break
@@ -1547,7 +1552,7 @@ class TaskManager:
                 else:
                     console.print("Error: You are not allowed to change this section.", justify='center',
                                   style='bold red')
-                    logging.info("Error: You are not allowed to change this section.")
+                    logger.info("Error: You are not allowed to change this section.")
 
                 console.print("Press Enter to continue...", justify='center', style='bold white')
                 input()
@@ -1569,7 +1574,7 @@ class TaskManager:
                     if comment_choice not in ['1', '2', '3']:
                         console.print("Error: Invalid option. Please choose a valid option.", justify='center',
                                       style='bold red')
-                        logging.info("Error: Invalid option. Please choose a valid option.")
+                        logger.info("Error: Invalid option. Please choose a valid option.")
                         console.print("Press Enter to continue...", justify='center', style='bold white')
                         input()
                         continue
@@ -1582,7 +1587,7 @@ class TaskManager:
                             comment_text = input()
                             if not comment_text:
                                 console.print("Error: Comment cannot be empty.", justify='center', style='bold red')
-                                logging.info("Error: Comment cannot be empty.")
+                                logger.info("Error: Comment cannot be empty.")
                                 console.print("Press Enter to continue...", justify='center', style='bold white')
                                 input()
                                 continue
@@ -1596,7 +1601,7 @@ class TaskManager:
                             clear_screen()
                         except Exception as e:
                             console.print(f"Error adding comment: {e}", justify='center', style='bold red')
-                            logging.info(f"Error adding comment: {e}")
+                            logger.info(f"Error adding comment: {e}")
                             console.print("Press Enter to continue...", justify='center', style='bold white')
                             input()
                             clear_screen()
@@ -1652,7 +1657,7 @@ class TaskManager:
                                         except Exception as e:
                                             console.print(f"Error removing comment: {e}", justify='center',
                                                           style='bold red')
-                                            logging.info(f"Error removing comment: {e}")
+                                            logger.info(f"Error removing comment: {e}")
                                             console.print("Press Enter to continue...", justify='center',
                                                           style='bold white')
                                             input()
@@ -1661,7 +1666,7 @@ class TaskManager:
                                     else:
                                         console.print("Error: You do not have permission to remove this comment.",
                                                       justify='center', style='bold red')
-                                        logging.info("Error: You do not have permission to remove this comment.")
+                                        logger.info("Error: You do not have permission to remove this comment.")
                                         console.print("Press Enter to continue...", justify='center',
                                                       style='bold white')
                                         input()
@@ -1669,7 +1674,7 @@ class TaskManager:
                                         break
                                 else:
                                     console.print("Error: Invalid comment number.", justify='center', style='bold red')
-                                    logging.info("Error: Invalid comment number.")
+                                    logger.info("Error: Invalid comment number.")
                                     console.print("Press Enter to continue...", justify='center', style='bold white')
                                     input()
                                     clear_screen()
@@ -1677,7 +1682,7 @@ class TaskManager:
                             else:
                                 console.print("Error: Invalid input. Please enter a valid comment number.",
                                               justify='center', style='bold red')
-                                logging.info("Error: Invalid input.")
+                                logger.info("Error: Invalid input.")
                                 console.print("Press Enter to continue...", justify='center', style='bold white')
                                 input()
                                 clear_screen()
@@ -1693,7 +1698,7 @@ class TaskManager:
                 return selected_task
             else:
                 console.print("Error: Invalid choice. Please try again.", justify='center', style='bold red')
-                logging.info("Error: Invalid choice.")
+                logger.info("Error: Invalid choice.")
                 console.print("Press Enter to continue...", justify='center', style='bold white')
                 input()
                 clear_screen()
@@ -1710,7 +1715,7 @@ class TaskManager:
         if selected_project['owner'] != username:
             console.print("Error: You do not have permission to delete tasks for this project.", justify='center',
                           style='bold red')
-            logging.info("Error: You do not have permission to delete tasks for this project.")
+            logger.info("Error: You do not have permission to delete tasks for this project.")
             console.print("Press Enter to continue...", justify='center', style='bold white')
             input()
             clear_screen()
@@ -1728,7 +1733,7 @@ class TaskManager:
         # Check if the user has any tasks in the project
         if not user_tasks:
             console.print("Error: You don't have any tasks in your project.", justify='center', style='bold red')
-            logging.info("Error: You don't have any tasks in your project.")
+            logger.info("Error: You don't have any tasks in your project.")
             console.print("Press Enter to continue...", justify='center', style='bold white')
             input()
             return
@@ -1745,7 +1750,7 @@ class TaskManager:
                 user_tasks):
             console.print("Error: Invalid task selection. Please enter a valid task number.", justify='center',
                           style='bold red')
-            logging.info("Error: Invalid task selection.")
+            logger.info("Error: Invalid task selection.")
             console.print("Press Enter to continue...", justify='center', style='bold white')
             input()
             return
@@ -1755,7 +1760,7 @@ class TaskManager:
         confirm = input(f"Are you sure you want to delete task '{selected_task['title']}'? (y/n): ")
         if confirm.lower() != 'y':
             console.print("Error: Task deletion canceled.", justify='center', style='bold red')
-            logging.info("Error: Task deletion canceled.")
+            logger.info("Error: Task deletion canceled.")
             console.print("Press Enter to continue...", justify='center', style='bold white')
             input()
             return
@@ -1827,7 +1832,7 @@ class TaskManager:
                     print()
         except FileNotFoundError:
             console.print("Erorr: No history available for this task.", style='bold red')
-            logging.info(f"Erorr: No history available task {selected_task}.")
+            logger.info(f"Erorr: No history available task {selected_task}.")
 
     def view_tasks(self, selected_project, username):
         console = Console(width=50)
@@ -1836,7 +1841,7 @@ class TaskManager:
 
         if not isinstance(tasks, dict):
             print("Error: Loaded tasks are not in the expected format.")
-            logging.info("Error: Loaded tasks are not in the expected format.")
+            logger.info("Error: Loaded tasks are not in the expected format.")
             return
 
         # Filter tasks based on project_id
@@ -1845,7 +1850,7 @@ class TaskManager:
 
         if not project_tasks:
             console.print("Error: No tasks in this project.", justify='center', style='bold red')
-            logging.info("Error: No tasks in this project.")
+            logger.info("Error: No tasks in this project.")
             console.print("Press Enter to continue...", justify='center', style='bold white')
             input()
             return
@@ -1898,10 +1903,10 @@ class TaskManager:
                 else:
                     console.print("Error: Invalid number. Please enter a valid task number.", justify='center',
                                   style='bold red')
-                    logging.info("Error: Invalid number.")
+                    logger.info("Error: Invalid number.")
             except ValueError:
                 console.print("Error: Invalid input. Please enter a number.", justify='center', style='bold red')
-                logging.info("Error: Invalid input.")
+                logger.info("Error: Invalid input.")
 
         # Get the selected task based on the user's choice
         selected_label = next(label for label, number in label_to_number.items() if number == task_choice)
@@ -1966,7 +1971,7 @@ class TaskManager:
                     input()
                 except KeyError as e:
                     console.print(f"Error: Missing key {e}", justify='center', style='bold red')
-                    logging.info(f"Error: Missing key {e}")
+                    logger.info(f"Error: Missing key {e}")
                     input("Press Enter to continue...")
 
             elif menu_choice == '2':
@@ -1983,7 +1988,7 @@ class TaskManager:
                 console.print("Error: Invalid choice. Please try again.", justify='center', style='bold red')
                 console.print("Press Enter to continue...", justify='center', style='bold white')
                 input()
-                logging.info("Error: Invalid choice.")
+                logger.info("Error: Invalid choice.")
 
     def tasks_menu(self, username, selected_project):
         console = Console(width=50)
@@ -2018,7 +2023,7 @@ class TaskManager:
                 break
             else:
                 console.print("Error: Invalid choice. Please try again.", justify='center', style='bold red')
-                logging.info("Error: Invalid choice.")
+                logger.info("Error: Invalid choice.")
                 console.print("Press Enter to continue...", justify='center', style='bold white')
                 input()
                 clear_screen()
