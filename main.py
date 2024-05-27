@@ -19,10 +19,11 @@ from rich.box import SIMPLE
 from datetime import datetime, timedelta
 import time
 import os
+
+
+
 logging.basicConfig(filename='Account/logfile.log', level=logging.INFO)
-
 logger = logging.getLogger()
-
 
 
 def clear_screen():
@@ -41,7 +42,6 @@ class UserManager:
     def __init__(self, users_file="Account/account.json"):
         self.users_file = users_file
         self.project_manager = ProjectManager()
-        os.makedirs(os.path.dirname(self.users_file), exist_ok=True)
 
     def save_users(self, users):
         with open(self.users_file, "w") as file:
@@ -101,6 +101,7 @@ class UserManager:
         console.print("  ┗┛┗┛┗┫┗┛┗", justify='left', style="blink bold green")
         console.print("       ┛   ", justify='left', style="blink bold green")
 
+#checking email condition
     def is_valid_email(self, email):
         console = Console(width=50)
         while not email.endswith("@gmail.com"):
@@ -114,6 +115,7 @@ class UserManager:
             console.print("\nEnter your email address: ", justify='left', style="blink bold yellow")
             email = input()
         return email
+    
 #checking password condition
     def is_valid_password(self, email, username):
         console = Console(width=50)
@@ -143,6 +145,7 @@ class UserManager:
             password = input()
 
         return (password, email, username)
+    
 #function for signup section 
     def sign_up(self):
         console = Console(width=50)
@@ -266,6 +269,7 @@ class UserManager:
             print("\n")
             console.print("********", overflow=overflow_p, justify='center', style="blink bold cyan")
             print("\n")
+            
 #function for login section 
     def login(self):
         console = Console(width=50)
@@ -344,7 +348,7 @@ class UserManager:
                         if elapsed_time >= 10:
                             screen.clear()
                             screen.refresh()
-                            screen.close()  
+                            screen.close()  # Close the screen
                             loop.stop()  
                             return
 
@@ -386,6 +390,7 @@ class ProjectManager:
     def save_projects(self, projects):
         with open(self.projects_file, "w") as file:
             json.dump(projects, file, indent=4)
+
 #reading project from json
     def load_projects(self):
         try:
@@ -463,7 +468,7 @@ class ProjectManager:
             return True
         else:
             print("[bold red]Deletion canceled.[/bold red]")
-            logger.error(f"Error: project {selected_project['title']} Deletion canceled.")
+            logger.error(f" project {selected_project['title']} Deletion canceled.")
             input("Press Enter to continue...")
             clear_screen()
             return False
@@ -522,12 +527,10 @@ class ProjectManager:
 
     def print_members_of_project(self):
         console = Console(width=70)
-        console.print("  ╔╦╗┌─┐┌┬┐┌┐ ┌─┐┬─┐┌─┐  ┌─┐┌─┐  ┌─┐┬─┐┌─┐ ┬┌─┐┌─┐┌┬┐", justify='left',
-                      style="blink bold magenta")
-        console.print("  ║║║├┤ │││├┴┐├┤ ├┬┘└─┐  │ │├┤   ├─┘├┬┘│ │ │├┤ │   │ ", justify='left',
-                      style="blink bold yellow")
-        console.print("  ╩ ╩└─┘┴ ┴└─┘└─┘┴└─└─┘  └─┘└    ┴  ┴└─└─┘└┘└─┘└─┘ ┴ ", justify='left',
-                      style="blink bold magenta")
+        console.print("  ╔╦╗┌─┐┌┬┐┌┐ ┌─┐┬─┐┌─┐  ┌─┐┌─┐  ┌─┐┬─┐┌─┐ ┬┌─┐┌─┐┌┬┐", justify='left', style="blink bold magenta")
+        console.print("  ║║║├┤ │││├┴┐├┤ ├┬┘└─┐  │ │├┤   ├─┘├┬┘│ │ │├┤ │   │ ", justify='left', style="blink bold yellow")
+        console.print("  ╩ ╩└─┘┴ ┴└─┘└─┘┴└─└─┘  └─┘└    ┴  ┴└─└─┘└┘└─┘└─┘ ┴ ", justify='left', style="blink bold magenta")
+        
     #remove members
     def remove_member_from_project(self, project_id, username):
         console = Console(width=80)
@@ -574,9 +577,8 @@ class ProjectManager:
 
                         else:
                             print("[bold red]Error: Remove canceled.[/bold red]")
-                            input("Press Enter to continue...")
-                            clear_screen()
                             logger.error("Error: Remove canceled.")
+                            input("Press Enter to continue...")
                             clear_screen()
                             return False
 
@@ -585,7 +587,7 @@ class ProjectManager:
                     logger.error("Error: This project has no members.")
                     input("Press Enter to continue...")
                     clear_screen()
-                    clear_screen()
+
             else:
                 print("[bold red]Error: You are not the owner of this project![/bold red]")
                 logger.error(f"Error: You are not the owner of project '{project['title']}'!")
@@ -722,9 +724,12 @@ class ProjectManager:
 
     def print_project_manager_menu(self):
         console = Console(width=80)
-        console.print("     ┌─┐┬─┐┌─┐ ┬┌─┐┌─┐┌┬┐  ┌┬┐┌─┐┌┐┌┌─┐┌─┐┌─┐┬─┐  ┌┬┐┌─┐┌┐┌┬ ┬", justify='left', style='blink bold cyan')
-        console.print("     ├─┘├┬┘│ │ │├┤ │   │   │││├─┤│││├─┤│ ┬├┤ ├┬┘  │││├┤ ││││ │", justify='left',style='blink bold yellow')
-        console.print("     ┴  ┴└─└─┘└┘└─┘└─┘ ┴   ┴ ┴┴ ┴┘└┘┴ ┴└─┘└─┘┴└─  ┴ ┴└─┘┘└┘└─┘\n", justify='left',style='blink bold cyan')
+        console.print("  ╔═╗┬─┐┌─┐ ┬┌─┐┌─┐┌┬┐  ╔╦╗┌─┐┌┐┌┌─┐┌─┐┌─┐┌┬┐┌─┐┌┐┌┌┬┐  ╔╦╗┌─┐┌┐┌┬ ┬", justify='left',
+                      style='blink bold cyan')
+        console.print("  ╠═╝├┬┘│ │ │├┤ │   │   ║║║├─┤│││├─┤│ ┬├┤ │││├┤ │││ │   ║║║├┤ ││││ │", justify='left',
+                      style='blink bold cyan')
+        console.print("  ╩  ┴└─└─┘└┘└─┘└─┘ ┴   ╩ ╩┴ ┴┘└┘┴ ┴└─┘└─┘┴ ┴└─┘┘└┘ ┴   ╩ ╩└─┘┘└┘└─┘\n", justify='left',
+                      style='blink bold cyan')
 
     def edit_project_menu(self, username, selected_project):
         task_manager = TaskManager()
@@ -918,7 +923,6 @@ class TaskManager:
         except FileNotFoundError:
             return {}
 
-
     def save_history(self, project_id, action, field_name, new_value, changer, timestamp):
         # Convert timestamp to datetime object if it's a string
         if isinstance(timestamp, str):
@@ -979,9 +983,9 @@ class TaskManager:
 
     def print_create_task(self):
         console = Console(width=100)
-        console.print("┌─┐┬─┐┌─┐┌─┐┌┬┐┌─┐  ┌┬┐┌─┐┌─┐┬┌─", justify='center', style='blink bold cyan')
-        console.print("│  ├┬┘├┤ ├─┤ │ ├┤    │ ├─┤└─┐├┴┐", justify='center', style='blink bold white')
-        console.print("└─┘┴└─└─┘┴ ┴ ┴ └─┘   ┴ ┴ ┴└─┘┴ ┴", justify='center', style='blink bold cyan')
+        console.print("                       ┌─┐┬─┐┌─┐┌─┐┌┬┐┌─┐  ┌┬┐┌─┐┌─┐┬┌─", justify='left', style='blink bold yellow')
+        console.print("                       │  ├┬┘├┤ ├─┤ │ ├┤    │ ├─┤└─┐├┴┐", justify='left', style='blink bold yellow')
+        console.print("                       └─┘┴└─└─┘┴ ┴ ┴ └─┘   ┴ ┴ ┴└─┘┴ ┴", justify='left', style='blink bold yellow')
 
     def create_task(self, username, selected_project):
         console = Console(width=80)
@@ -1569,8 +1573,9 @@ class TaskManager:
                     comment_choice = input()
 
                     if comment_choice not in ['1', '2', '3']:
-                        console.print("Error: Invalid option. Please choose a valid option.", justify='center', style='bold red')
-                        logging.info("Error: Invalid option. Please choose a valid option.")
+                        console.print("Error: Invalid option. Please choose a valid option.", justify='center',
+                                      style='bold red')
+                        logger.info("Error: Invalid option. Please choose a valid option.")
                         console.print("Press Enter to continue...", justify='center', style='bold white')
                         input()
                         continue
@@ -1583,13 +1588,13 @@ class TaskManager:
                             comment_text = input()
                             if not comment_text:
                                 console.print("Error: Comment cannot be empty.", justify='center', style='bold red')
-                                logging.info("Error: Comment cannot be empty.")
+                                logger.info("Error: Comment cannot be empty.")
                                 console.print("Press Enter to continue...", justify='center', style='bold white')
                                 input()
                                 continue
                             selected_task["comments"].append({"username": username, "comment": comment_text})
-                            self.save_history(selected_project["project_id"], "Comment Added", selected_task["title"], 
-                                                      comment_text, username, datetime.now())
+                            self.save_history(selected_project["project_id"], "Comment Added", selected_task["title"],
+                                              comment_text, username, datetime.now())
                             console.print("Comment added successfully.", justify='center', style='bold green')
                             logger.info(f"{username} added a comment to {selected_task}")
                             console.print("Press Enter to continue...", justify='center', style='bold white')
@@ -1597,7 +1602,7 @@ class TaskManager:
                             clear_screen()
                         except Exception as e:
                             console.print(f"Error adding comment: {e}", justify='center', style='bold red')
-                            logging.info(f"Error adding comment: {e}")
+                            logger.info(f"Error adding comment: {e}")
                             console.print("Press Enter to continue...", justify='center', style='bold white')
                             input()
                             clear_screen()
@@ -1611,16 +1616,17 @@ class TaskManager:
                             console.print("Press Enter to continue...", justify='center', style='bold white')
                             input()
                             continue
-                        
 
                         console.print("\nSelect a comment to remove: \n", justify='center', style='bold white')
                         for index, comment in enumerate(selected_task["comments"], 1):
-                            console.print(f"{index}. {comment['username']}: {comment['comment']}", justify='center', style='cyan')
+                            console.print(f"{index}. {comment['username']}: {comment['comment']}", justify='center',
+                                          style='cyan')
                             console.print("  ", justify='center')
                             time.sleep(0.5)
 
                         while True:
-                            console.print("\nEnter the comment number to remove (or press Enter to cancel): ", justify='center', style='white')
+                            console.print("\nEnter the comment number to remove (or press Enter to cancel): ",
+                                          justify='center', style='white')
                             remove_choice = input()
                             if remove_choice == "":
                                 break
@@ -1628,48 +1634,56 @@ class TaskManager:
                                 remove_choice = int(remove_choice) - 1
                                 if 0 <= remove_choice < len(selected_task["comments"]):
                                     comment_to_remove = selected_task["comments"][remove_choice]
-                                    if comment_to_remove["username"] == username or username == selected_project["owner"]:
+                                    if comment_to_remove["username"] == username or username == selected_project[
+                                        "owner"]:
                                         try:
                                             # Remove the comment and save the changes
                                             selected_task["comments"].remove(comment_to_remove)
                                             self.save_history(
-                                                selected_project["project_id"], 
-                                                "Comment Removed", 
+                                                selected_project["project_id"],
+                                                "Comment Removed",
                                                 selected_task["title"],
-                                                comment_to_remove["comment"], 
-                                                username, 
+                                                comment_to_remove["comment"],
+                                                username,
                                                 datetime.now()
                                             )
-                                            console.print("Comment removed successfully.", justify='center', style='bold green')
+                                            console.print("Comment removed successfully.", justify='center',
+                                                          style='bold green')
                                             logger.info(f"{comment_to_remove} removed successfully.")
-                                            console.print("Press Enter to continue...", justify='center', style='bold white')
+                                            console.print("Press Enter to continue...", justify='center',
+                                                          style='bold white')
                                             input()
                                             clear_screen()
                                             break  # Return to the main comment menu
                                         except Exception as e:
-                                            console.print(f"Error removing comment: {e}", justify='center', style='bold red')
-                                            logging.info(f"Error removing comment: {e}")
-                                            console.print("Press Enter to continue...", justify='center', style='bold white')
+                                            console.print(f"Error removing comment: {e}", justify='center',
+                                                          style='bold red')
+                                            logger.info(f"Error removing comment: {e}")
+                                            console.print("Press Enter to continue...", justify='center',
+                                                          style='bold white')
                                             input()
                                             clear_screen()
                                             break
                                     else:
-                                        console.print("Error: You do not have permission to remove this comment.", justify='center', style='bold red')
-                                        logging.info("Error: You do not have permission to remove this comment.")
-                                        console.print("Press Enter to continue...", justify='center', style='bold white')
+                                        console.print("Error: You do not have permission to remove this comment.",
+                                                      justify='center', style='bold red')
+                                        logger.info("Error: You do not have permission to remove this comment.")
+                                        console.print("Press Enter to continue...", justify='center',
+                                                      style='bold white')
                                         input()
                                         clear_screen()
                                         break
                                 else:
                                     console.print("Error: Invalid comment number.", justify='center', style='bold red')
-                                    logging.info("Error: Invalid comment number.")
+                                    logger.info("Error: Invalid comment number.")
                                     console.print("Press Enter to continue...", justify='center', style='bold white')
                                     input()
                                     clear_screen()
                                     break
                             else:
-                                console.print("Error: Invalid input. Please enter a valid comment number.", justify='center', style='bold red')
-                                logging.info("Error: Invalid input.")
+                                console.print("Error: Invalid input. Please enter a valid comment number.",
+                                              justify='center', style='bold red')
+                                logger.info("Error: Invalid input.")
                                 console.print("Press Enter to continue...", justify='center', style='bold white')
                                 input()
                                 clear_screen()
@@ -2031,7 +2045,6 @@ def main():
         else:
             loop.stop()
 
-    # Define the scene that you'd like to play.
     screen = Screen.open()
     effects = [
         Cycle(
@@ -2041,13 +2054,10 @@ def main():
         Stars(screen, (screen.width + screen.height) // 2)
     ]
     screen.set_scenes([Scene(effects, 500)])
-
-    # Schedule the first call to display_date()
     loop = asyncio.new_event_loop()
     end_time = loop.time() + 5.0
     loop.call_soon(update_screen, end_time, loop, screen)
 
-    # Blocking call interrupted by loop.stop()
     loop.run_forever()
     loop.close()
     screen.close()
