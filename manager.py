@@ -49,4 +49,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()python3 ./manager.py create-admin --username admin --password admin
+    main()
