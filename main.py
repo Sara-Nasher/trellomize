@@ -1,6 +1,7 @@
 import asyncio
 from asciimatics.effects import Cycle, Stars
 from asciimatics.renderers import FigletText
+from asciimatics.widgets import Frame, Layout, Label
 from asciimatics.scene import Scene
 from asciimatics.screen import Screen
 from random import randint
@@ -71,14 +72,17 @@ class UserManager:
 
     def display_project_members(self, project):
         members = project.get("members", [])
-        console = Console()  # Initialize the Console object
+        # Initialize the Console object
+        console = Console()  
         if members:
-            console.print("Project Members:", style="bold")  # Display the header
+            # Display the header
+            console.print("Project Members:", style="bold")  
             for index, member in enumerate(members, 1):
-                console.print(f"{index}. {member}")  # Display the members
+                 # Display the members
+                console.print(f"{index}. {member}") 
         else:
-            console.print("Error: No members found for this project.",
-                          style='bold red')  # Display error message if no members found
+             # Display error message if no members found
+            console.print("Error: No members found for this project.", style='bold red') 
             logger.info(f"Error: No members found for project {project}.")
 
     def print_sign_up(self):
@@ -270,7 +274,7 @@ class UserManager:
             console.print("********", overflow=overflow_p, justify='center', style="blink bold cyan")
             print("\n")
             
-#function for login section 
+    #function for login section 
     def login(self):
         console = Console(width=50)
         users = self.load_users()
@@ -319,7 +323,7 @@ class UserManager:
                 print("[bold red]Error: Invalid input! [/bold red]")
                 logger.info("Error: Invalid input!")
                 clear_screen()
-#first menu 
+    #first menu 
     def menu(self):
         clear_screen()
         while True:
@@ -345,29 +349,30 @@ class UserManager:
                     while True:
                         current_time = asyncio.get_event_loop().time()
                         elapsed_time = current_time - start_time
-                        if elapsed_time >= 10:
+                        if elapsed_time >= 20:
                             screen.clear()
                             screen.refresh()
-                            screen.close()  # Close the screen
-                            loop.stop()  
+                            screen.close()  
+                            loop.stop()
                             return
 
                         screen.print_at('EXIT!',
-                                        randint(0, screen.width), randint(0, screen.height),
+                                        randint(0, 70), randint(0, 70),  
                                         colour=randint(0, screen.colours - 1),
-                                        bg=randint(0, screen.colours - 1))
-                        ev = screen.get_key()
-                        if ev in (ord('Q'), ord('q')):
-                            return
+                            bg=randint(0, screen.colours - 1))
                         screen.refresh()
                         await asyncio.sleep(0.05)
 
                 screen = Screen.open()
+                screen.width = 70
+                screen.height = 70
                 loop = asyncio.new_event_loop()
                 task = loop.create_task(demo(screen))
                 loop.run_forever()
                 loop.close()
+                screen.close()  
                 exit()
+
             else:
                 print("[bold red]Error: Invalid choice. Please enter 1, 2, or 3.[/bold red]")
                 logger.info("Error: Invalid choice.")
@@ -386,27 +391,28 @@ class ProjectManager:
     def __init__(self, projects_file="Account/projects.json"):
         self.projects_file = projects_file
 
-#saving project in json 
+    #saving project in json 
     def save_projects(self, projects):
         with open(self.projects_file, "w") as file:
             json.dump(projects, file, indent=4)
 
-#reading project from json
+    #reading project from json
     def load_projects(self):
         try:
             with open(self.projects_file, "r") as file:
                 data = file.read()
                 if not data:
-                    return {} #for empty file
+                    #for empty file
+                    return {} 
                 return json.loads(data)
         except FileNotFoundError:
             return {}
 
     def print_your_projects(self):
         console = Console(width=50)
-        console.print("  ╦ ╦┌─┐┬ ┬┬─┐  ┌─┐┬─┐┌─┐ ┬┌─┐┌─┐┌┬┐┌─┐", justify='center', style='blink bold red')
-        console.print("  ╚╦╝│ ││ │├┬┘  ├─┘├┬┘│ │ │├┤ │   │ └─┐", justify='center', style='blink bold white')
-        console.print("   ╩ └─┘└─┘┴└─  ┴  ┴└─└─┘└┘└─┘└─┘ ┴ └─┘", justify='center', style='blink bold red')
+        console.print("     ╦ ╦┌─┐┬ ┬┬─┐  ┌─┐┬─┐┌─┐ ┬┌─┐┌─┐┌┬┐┌─┐", justify='center', style='blink bold red')
+        console.print("     ╚╦╝│ ││ │├┬┘  ├─┘├┬┘│ │ │├┤ │   │ └─┐", justify='center', style='blink bold white')
+        console.print("      ╩ └─┘└─┘┴└─  ┴  ┴└─└─┘└┘└─┘└─┘ ┴ └─┘", justify='center', style='blink bold red')
 
     def check_project_existence(self, project_id):
         projects = self.load_projects()
@@ -414,6 +420,13 @@ class ProjectManager:
 
     def create_project(self, project_id, title, owner):
         projects = self.load_projects()
+
+        # Check if projectid or title is empty
+        while not project_id or not title:
+            print("[bold red]Error: Project ID and title cannot be empty![/bold red]")
+            logger.error("Error: Project ID and title cannot be empty!")
+            project_id = input("Enter the project ID: ")
+            title = input("Enter the project title: ")
 
         # Check if projectid or title is empty
         if not project_id or not title:
@@ -434,8 +447,7 @@ class ProjectManager:
         # Check if the project exists for the owner
         for proj in projects.values():
             if proj["title"] == title and proj.get("owner") == owner:
-                print(
-                    "[bold red]Erorr: You already have a project with the same title! Please choose a different title.[/bold red]")
+                print("[bold red]Erorr: You already have a project with the same title! Please choose a different title.[/bold red]")
                 logger.error(f"Erorr:You already have a project with the same title: {title} owned by {owner}!")
                 input("Press Enter to continue...")
                 clear_screen()
@@ -449,8 +461,8 @@ class ProjectManager:
         projects[project_id] = {"title": title, "project_id": project_id, "owner": owner}
         self.save_projects(projects)
         return Project(project_id, title, owner)
-        
-        #deleting project 
+    
+    #deleting project 
     def delete_project(self, owner):
         selected_project = self.select_project(owner)
         if selected_project is None:
@@ -461,6 +473,10 @@ class ProjectManager:
             projects = self.load_projects()
             del projects[selected_project['project_id']]
             self.save_projects(projects)
+            # Here we initialize a TaskManager object to handle tasks related operations
+            task_manager = TaskManager()
+            # Delete tasks related to the deleted project
+            task_manager.delete_tasks_by_project(selected_project['project_id'])  
             logger.info(f"{owner} deleted project {selected_project['title']} successfully.")
             print("[bold green]Project deleted successfully![/bold green]")
             input("Press Enter to continue...")
@@ -478,6 +494,92 @@ class ProjectManager:
         console.print("  ┌─┐┌┬┐┌┬┐  ┌┬┐┌─┐┌┬┐┌┐ ┌─┐┬─┐", justify='center', style="blink bold magenta")
         console.print("  ├─┤ ││ ││  │││├┤ │││├┴┐├┤ ├┬┘", justify='center', style="blink bold cyan")
         console.print("  ┴ ┴─┴┘─┴┘  ┴ ┴└─┘┴ ┴└─┘└─┘┴└─", justify='center', style="blink bold magenta")
+    
+    def print_requests(self):
+        console = Console(width=80)
+        console.print("              ╦═╗┌─┐┌─┐ ┬ ┬┌─┐┌─┐┌┬┐┌─┐", justify='left', style="blink bold green")
+        console.print("              ╠╦╝├┤ │─┼┐│ │├┤ └─┐ │ └─┐", justify='left', style="blink bold magenta")
+        console.print("              ╩╚═└─┘└─┘└└─┘└─┘└─┘ ┴ └─┘\n", justify='left', style="blink bold green")
+
+    # Load requests from file
+    def load_requests(self):
+        requests_file = "Account/requests.json"
+        try:
+            with open(requests_file, "r") as file:
+                requests = json.load(file)
+        except FileNotFoundError:
+            requests = []
+        return requests
+
+    # Save requests to file
+    def save_requests(self, requests):
+        requests_file = "Account/requests.json"
+        with open(requests_file, "w") as file:
+            json.dump(requests, file, indent=4)
+
+    def handle_requests(self, username):
+        console = Console(width=80)
+        requests = self.load_requests()
+
+        if not requests:
+            print("No requests.")
+            logger.error("No requests.")
+            input("Press Enter to continue...")
+            clear_screen()
+            return
+        
+        # Filter requests for the current user
+        user_requests = [req for req in requests if req["username"] == username]
+        # Display the filtered requests in a table
+        table = Table( style="bold magenta")
+        table.add_column("Request ID", justify="center", style="bold yellow")
+        table.add_column("Project ID", justify="center", style="bold yellow")
+        table.add_column("Owner",justify="center", style="bold yellow")
+        table.add_column("Status", justify="center", style="bold yellow")
+
+        for idx, req in enumerate(user_requests):
+            table.add_row(str(idx + 1), str(req["project_id"]), req["owner"], "Pending")
+
+        console.print(table, justify='center')
+
+        choice = input("Enter the request ID (0 to cancel): ")
+        if choice == "0":
+            clear_screen()
+            return
+    
+
+        try:
+            choice_idx = int(choice) - 1
+            if 0 <= choice_idx < len(user_requests):
+                project_id = user_requests[choice_idx]["project_id"]
+                response = input(f"Do you want to accept the request for project {project_id}? (y/n): ")
+                if response.lower() == "y":
+                    # Add the member to the project
+                    projects = self.load_projects()
+                    projects[project_id].setdefault("members", []).append(username)
+                    self.save_projects(projects)
+                    print(f"[bold green]{username} added to project {project_id} successfully![/bold green]")
+                    logger.info(f"{username} added to project {project_id} by request.")
+                    input("Press Enter to continue...")
+                    clear_screen()
+                else:
+                    print("[bold red]Request declined.[/bold red]")
+                    logger.info("Request declined.")
+                    input("Press Enter to continue...")
+                    clear_screen()
+                # Remove the request from the list
+                del requests[requests.index(user_requests[choice_idx])]
+                self.save_requests(requests)
+            else:
+                print("[bold red]nvalid choice.[/bold red]")
+                logger.error("Invalid choice.")
+                input("Press Enter to continue...")
+                clear_screen()
+        except ValueError:
+            print("[bold red]Invalid choice.[/bold red]")
+            logger.error("Invalid choice.")
+            input("Press Enter to continue...")
+            clear_screen()
 
     #adding member to project
     def add_member_to_project(self, project_id, member, username):
@@ -485,45 +587,54 @@ class ProjectManager:
         projects = self.load_projects()
         users = user_manager.load_users()
 
-        if project_id in projects:
-            project = projects[project_id]
-            if project["owner"] == username:
-                if member in users:
-                    project["members"] = project.get("members", [])
-                    if member not in project["members"]:
-                        project["members"].append(member)
-                        print(
-                            f"[bold green]Member '{member}' added to project '{project['title']}' successfully.[/bold green]")
-                        logger.info(f"Member '{member}' added to project '{project['title']}' successfully.")
-                        self.save_projects(projects)
-                        print("Press Enter to continue...")
-                        input()
-                        clear_screen()
-                    else:
-                        print(
-                            f"[bold red]Erorr: Member '{member}' is already a member of project '{project['title']}'.[/bold red]")
-                        logger.error(f"Erorr: Member '{member}' is already a member of project '{project['title']}'.")
-                        print("Press Enter to continue...")
-                        input()
-                        clear_screen()
-                else:
-                    print("[bold red]Erorr: User not found![/bold red]")
-                    logger.error(f"Erorr: User '{member}' not found!")
-                    print("Press Enter to continue...")
-                    input()
-                    clear_screen()
-            else:
-                print("[bold red]Erorr: You are not the owner of this project![/bold red]")
-                logger.error("Erorr: You are not the owner of this project!")
-                print("Press Enter to continue...")
-                input()
-                clear_screen()
-        else:
-            print(f"[bold red]Erorr: Project with ID '{project_id}' not found.[/bold red]")
-            logger.error(f"Erorr: Project with ID '{project_id}' not found.")
-            print("Press Enter to continue...")
-            input()
+        # Check if the project exists
+        if project_id not in projects:
+            print("[bold red]Error: Project does not exist![/bold red]")
+            logger.error(f"Error: Project {project_id} does not exist!")
+            input("Press Enter to continue...")
             clear_screen()
+            return
+
+        # Check if the user is the owner of the project
+        if projects[project_id].get("owner") != username:
+            print("[bold red]Error: Only the owner can add members to the project![/bold red]")
+            logger.error(f"Error: Only the owner can add members to the project {project_id}!")
+            input("Press Enter to continue...")
+            clear_screen()
+            return
+
+        # Check if the member exists
+        if member not in users:
+            print("[bold red]Error: Member does not exist![/bold red]")
+            logger.error(f"Error: Member {member} does not exist!")
+            input("Press Enter to continue...")
+            clear_screen()
+            return
+
+        # Load existing requests
+        requests = self.load_requests()
+
+        # Check if there's already a request from this member for this project
+        request_exists = False
+        for request in requests:
+            if request["username"] == member and request["project_id"] == project_id:
+                request_exists = True
+                break
+
+        # Create and save a new request if one doesn't already exist
+        if not request_exists:
+            request_data = {"username": member, "project_id": project_id, "owner": username}
+            requests.append(request_data)
+            self.save_requests(requests)
+
+            print(f"[bold green]Request sent to {member} successfully![/bold green]")
+            logger.info(f"Request sent to {member} for project {project_id}.")
+        else:
+            print("[bold yellow]Request already exists![/bold yellow]")
+            logger.info(f"Request from {member} for project {project_id} already exists.")
+
+        input("Press Enter to continue...")
+        clear_screen()
 
     def print_members_of_project(self):
         console = Console(width=70)
@@ -756,7 +867,7 @@ class ProjectManager:
             if choice == '1':
                 clear_screen()
                 self.print_add_member()
-                member = input("Enter the username of the member you want to add: ")
+                member = input("\nEnter the username of the member you want to add: ")
                 self.add_member_to_project(selected_project['project_id'], member, username)
             elif choice == '2':
                 clear_screen()
@@ -816,7 +927,7 @@ class ProjectManager:
             console.print(title, overflow=overflow_u, style="blink bold yellow", justify='center')
             print("\n")
         return project_id, title
-
+    
     def account(self, username):
         console = Console(width=50)
         while True:
@@ -834,7 +945,10 @@ class ProjectManager:
             console.print("4. View Projects", justify='center')
             console.print("  ", justify='center')
             time.sleep(0.7)
-            console.print("5. Logout", justify='center')
+            console.print("5. Requests", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("6. Logout", justify='center')
             console.print("  ", justify='center')
             time.sleep(0.7)
             console.print("Choose an option: ", justify='center', style="blink bold yellow")
@@ -843,24 +957,22 @@ class ProjectManager:
             if choice == '1':
                 project_id, title = self.create_project_design()
                 self.create_project(project_id, title, username)
-
             elif choice == '2':
                 selected_project = self.show_project(username)
                 if selected_project:
                     self.edit_project_menu(username, selected_project)
-
             elif choice == '3':
                 self.delete_project(username)
-
-
             elif choice == '4':
                 self.view_projects(username)
                 print()
                 console.print("Press Enter to continue...", justify='center')
                 input()
                 clear_screen()
-
             elif choice == '5':
+                self.print_requests()
+                self.handle_requests(username)
+            elif choice == '6':
                 break
             else:
                 print("[bold red]Error: Invalid choice. Please try again.[/bold red]")
@@ -958,6 +1070,13 @@ class TaskManager:
         else:
             print("Error: Task not found.")
             logger.info(f"Error: Task {task_id} not found.")
+            
+    def delete_tasks_by_project(self, project_id):
+        tasks = self.load_tasks()
+        for task_id, task in list(tasks.items()):
+            if task.get('project_id') == project_id:
+                del tasks[task_id]
+        self.save_tasks(tasks)
 
     def get_valid_datetime(self):
         console = Console(width=60)
@@ -965,7 +1084,8 @@ class TaskManager:
             console.print("Enter the task deadline (2024-09-04 04:09): ", justify='center', style='white underline')
             datetime_input = input()
             if not datetime_input:
-                return None  # Return None if the input is empty
+                # Return None if the input is empty
+                return None  
             try:
                 datetime_obj = datetime.strptime(datetime_input, "%Y-%m-%d %H:%M")
                 if datetime_obj < datetime.now():
@@ -1059,10 +1179,10 @@ class TaskManager:
                     selected_members.append(members[int(choice) - 1])
                 else:
                     console.print("Error: Invalid member choice.", justify='center', style='bold red')
-
                     logger.info("Error: Invalid member choice.")
                     invalid_choice = True
                     break
+
             if not invalid_choice:
                 break
 
@@ -1085,7 +1205,7 @@ class TaskManager:
                     '2': Priority.HIGH,
                     '3': Priority.MEDIUM,
                     '4': Priority.LOW
-                }.get(priority, Priority.LOW)
+                }.get(priority)
                 break
             elif not priority:
                 selected_priority = Priority.CRITICAL
@@ -1117,7 +1237,7 @@ class TaskManager:
                     '3': Status.DOING,
                     '4': Status.DONE,
                     '5': Status.ARCHIVED
-                }.get(status, Status.BACKLOG)
+                }.get(status)
                 break
             elif not status:
                 selected_status = Status.BACKLOG
@@ -1300,7 +1420,8 @@ class TaskManager:
             elif choice == '4':
                 clear_screen()
                 if username == selected_project["owner"]:
-                    while True:  # Loop until valid choice is made
+                    # Loop until valid choice is made
+                    while True:  
                         console.print("Assignees menu: ", justify='center', style="blink bold blue")
                         console.print("\n1. Add Assignees", justify='center', style='white')
                         console.print("  ", justify='center')
@@ -1391,7 +1512,8 @@ class TaskManager:
                                     console.print("Press Enter to continue...", justify='center', style='bold white')
                                     input()
                                     clear_screen()
-                                    break  # Restart the loop to get input again
+                                    # Restart the loop to get input again
+                                    break  
                             else:
                                 self.save_history(selected_project["project_id"], "Assignees Removed",
                                                   selected_task["title"],
@@ -1402,17 +1524,20 @@ class TaskManager:
                                 console.print("Press Enter to continue...", justify='center', style='bold white')
                                 input()
                                 clear_screen()
-                                continue  # Exit the loop after successful input
+                                # Exit the loop after successful input
+                                continue  
 
+                        # Exit the loop and return to the main menu
                         elif assignee_choice == '3':
-                            break  # Exit the loop and return to the main menu
+                            break  
                         else:
                             console.print("Error: Invalid choice.", justify='center', style='bold red')
                             logger.info("Error: Invalid choice.")
                             console.print("Press Enter to continue...", justify='center', style='bold white')
                             input()
                             clear_screen()
-                            continue  # Restart the loop to get valid input
+                            # Restart the loop to get valid input
+                            continue  
                 else:
                     console.print("Error: You are not allowed to change this section.", justify='center',
                                   style='bold red')
@@ -1578,6 +1703,7 @@ class TaskManager:
                         logger.info("Error: Invalid option. Please choose a valid option.")
                         console.print("Press Enter to continue...", justify='center', style='bold white')
                         input()
+                        clear_screen()
                         continue
 
                     if comment_choice == '1':
@@ -1840,7 +1966,7 @@ class TaskManager:
             logger.info(f"Erorr: No history available task {selected_task}.")
 
     def view_tasks(self, selected_project, username):
-        console = Console(width=50)
+        console = Console(width=80)
         # Load tasks from tasks.json
         tasks = self.load_tasks()
 
@@ -2034,18 +2160,47 @@ class TaskManager:
                 clear_screen()
                 continue
 
+class LoadingCircle:
+    def __init__(self, screen, x, y):
+        self.screen = screen
+        self.x = x
+        self.y = y
+        self.progress = 0
+
+    def draw(self):
+        self.screen.print_at('Loading: {}'.format(self.progress), self.x, self.y)
+
+    def update(self):
+        if self.progress < 100:
+            self.progress += 1
+
+    def is_done(self):
+        return self.progress == 100
+
+
+
 
 def main():
     user_manager = UserManager()
 
-    def update_screen(end_time, loop, screen):
+    def custom_screen():
+        screen = Screen.open()
+        screen.width = 80
+        screen.height = 20  
+        return screen
+
+    def update_screen(end_time, loop, screen, loading_circle):
+        loading_circle.update()
         screen.draw_next_frame()
+        loading_circle.draw()
         if loop.time() < end_time:
-            loop.call_later(0.05, update_screen, end_time, loop, screen)
+            loop.call_later(0.05, update_screen, end_time, loop, screen, loading_circle)
         else:
             loop.stop()
 
-    screen = Screen.open()
+    screen = custom_screen()
+    #Add loading at the bottom of the page
+    loading_circle = LoadingCircle(screen, screen.width // 2 - 8, screen.height - 2)  
     effects = [
         Cycle(
             screen,
@@ -2055,13 +2210,14 @@ def main():
     ]
     screen.set_scenes([Scene(effects, 500)])
     loop = asyncio.new_event_loop()
-    end_time = loop.time() + 5.0
-    loop.call_soon(update_screen, end_time, loop, screen)
-
+    end_time = loop.time() + 8.0
+    #Add sample loading to the function
+    loop.call_soon(update_screen, end_time, loop, screen, loading_circle)  
     loop.run_forever()
     loop.close()
     screen.close()
     user_manager.menu()
+
 
 
 if __name__ == "__main__":
