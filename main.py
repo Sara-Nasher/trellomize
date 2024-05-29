@@ -614,6 +614,17 @@ class ProjectManager:
             clear_screen()
             return
 
+        # Check if the member is already in the project
+        if "members" not in projects[project_id]:
+            projects[project_id]["members"] = []
+
+        if member in projects[project_id]["members"]:
+            print("[bold red]Error: Member is already in the project![/bold red]")
+            logger.error(f"Error: Member {member} is already in the project {project_id}!")
+            input("Press Enter to continue...")
+            clear_screen()
+            return
+
         # Load existing requests
         requests = self.load_requests()
 
