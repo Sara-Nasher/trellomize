@@ -24,7 +24,6 @@ import os
 logging.basicConfig(filename='Account/logfile.log', level=logging.INFO)
 logger = logging.getLogger()
 
-
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -103,6 +102,7 @@ class UserManager:
         console.print("  ┗┛┗┛┗┫┗┛┗", justify='left', style="blink bold green")
         console.print("       ┛   ", justify='left', style="blink bold green")
 
+    
     # checking email condition
     def is_valid_email(self, email):
         console = Console(width=50)
@@ -297,14 +297,20 @@ class UserManager:
         hashed_password = hashlib.sha256(password.encode()).hexdigest()
 
         if any(user["username"] == username and user["password"] == hashed_password for user in users.values()):
-            print("[bold green]\nLogin successful![/bold green]")
-            logger.info("Login successful!")
-            input("Press Enter to continue...")
-            clear_screen()
-            self.print_account(users[username]['email'], username, users[username]['password'], console)
-            input("Press Enter to continue...")
-            clear_screen()
-            project_manager.account(username)
+            if users[username]["active"]:
+                print("[bold green]\nLogin successful![/bold green]")
+                logger.info("Login successful!")
+                input("Press Enter to continue...")
+                clear_screen()
+                self.print_account(users[username]['email'], username, users[username]['password'], console)
+                input("Press Enter to continue...")
+                clear_screen()
+                project_manager.account(username)
+            else:
+                print("[bold red]Error: This account is not active![/bold red]")
+                logger.error("Inactive account!")
+                input("Press Enter to continue...")
+                clear_screen()
         else:
             print("[bold red]Error: Invalid username or password![/bold red]")
             logger.info("Error: Invalid username or password!")
@@ -404,8 +410,10 @@ class ProjectManager:
                     # for empty file
                     return {}
                 return json.loads(data)
+            
         except FileNotFoundError:
-            return {}
+            return{}
+
 
     def print_your_projects(self):
         console = Console(width=50)
