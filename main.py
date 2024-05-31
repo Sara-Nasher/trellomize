@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 import time
 import os
 
+
 logging.basicConfig(filename='Account/logfile.log', level=logging.INFO)
 logger = logging.getLogger()
 
@@ -173,9 +174,14 @@ class UserManager:
         console.print("\nEnter your username: ", justify='left', style="blink bold green")
         username = input()
 
-        while username in users:
-            print("[bold red]Error: Username already exists![/bold red]")
-            logger.info("Error: Username already exists!")
+        # Check for empty username or existing username
+        while not username or username in users:
+            if not username:
+                print("[bold red]Error: Username cannot be empty![/bold red]")
+                logger.info("Error: Username cannot be empty!")
+            else:
+                print("[bold red]Error: Username already exists![/bold red]")
+                logger.info("Error: Username already exists!")
             input("Press Enter to continue...")
             clear_screen()
             self.print_sign_up()
@@ -248,6 +254,7 @@ class UserManager:
         self.create_user(email, username, hashed_password)
         clear_screen()
 
+
     def print_account(self, email, username, password, console):
         self.print_your_account()
 
@@ -272,6 +279,56 @@ class UserManager:
             console.print("********", overflow=overflow_p, justify='center', style="blink bold cyan")
             print("\n")
 
+    def print_reset_password(self):
+        console = Console(width=60)
+        console.print("  ┬─┐┌─┐┌─┐┌─┐┌┬┐  ┌─┐┌─┐┌─┐┌─┐┬ ┬┌─┐┬─┐┌┬┐", justify="center", style="blink bold red")
+        console.print("  ├┬┘├┤ └─┐├┤  │   ├─┘├─┤└─┐└─┐││││ │├┬┘ ││", justify="center", style="blink bold cyan")
+        console.print("  ┴└─└─┘└─┘└─┘ ┴   ┴  ┴ ┴└─┘└─┘└┴┘└─┘┴└──┴┘", justify="center", style="blink bold red")
+    
+    def print_check_email(self):
+        console = Console(width=60)
+        console.print("  ┌─┐┬ ┬┌─┐┌─┐┬┌─  ┌─┐┌┬┐┌─┐┬┬  ", justify="center", style="blink bold green")
+        console.print("  │  ├─┤├┤ │  ├┴┐  ├┤ │││├─┤││  ", justify="center", style="blink bold red")
+        console.print("   └─┘┴ ┴└─┘└─┘┴ ┴  └─┘┴ ┴┴ ┴┴┴─┘", justify="center", style="blink bold green")
+
+    def reset_password(self):
+        clear_screen()
+        console = Console(width=50)
+        users = self.load_users()
+        self.print_check_email()
+        email = input("Enter your Email: ")
+        email_found = False  
+        for username, user_data in users.items():
+            if user_data['email'] == email:
+                email_found = True 
+                clear_screen()
+                self.print_reset_password()
+                console.print("\nEnter your new password: ", style="bold yellow")
+                new_password = input()
+                console.print("\nEnter your confirm password: ", style="bold yellow")
+                new_confirm_password = input()
+                if new_password != new_confirm_password:
+                    console.print("\nError: Passwords do not match!", style="bold red")
+                    logging.error("Error: Passwords do not match!")
+                    input("Press Enter to continue...")
+                    clear_screen()
+                else:
+                    users[username]['password'] = hashlib.sha256(new_password.encode()).hexdigest()
+                    self.save_users(users)
+                    console.print("\nPassword reset successful!", style="bold green")
+                    logging.info("Password reset successful!")
+                    input("Press Enter to continue...")
+                    clear_screen()
+                    return
+
+    
+        if not email_found:
+            console.print("\nError: Email not found.", style="bold red")
+            input("Press Enter to continue...")
+            clear_screen()
+            return
+
+            
     # function for login section
     def login(self):
         console = Console(width=50)
@@ -312,21 +369,25 @@ class UserManager:
                 input("Press Enter to continue...")
                 clear_screen()
         else:
-            print("[bold red]Error: Invalid username or password![/bold red]")
-            logger.info("Error: Invalid username or password!")
-            print(f"[cyan]Do you have an account?(y/n)[/cyan]")
-            answer = input()
-            if answer.lower() == 'y':
-                clear_screen()
-                self.login()
-            elif answer.lower() == 'n':
-                clear_screen()
-                self.sign_up()
+            console.print("Error: Invalid username or password!", style="bold red")
+            logging.error("Error: Invalid username or password!")
+            if input("Forgot password? (y/n)").lower() == 'y':
+                self.reset_password()
             else:
-                clear_screen()
-                print("[bold red]Error: Invalid input! [/bold red]")
-                logger.info("Error: Invalid input!")
-                clear_screen()
+                print("Do you have an account? (y/n)")
+                answer = input()
+                if answer.lower() == 'y':
+                    clear_screen()
+                    self.login()
+                elif answer.lower() == 'n':
+                    clear_screen()
+                    self.sign_up()
+                else:
+                    print("[bold redError: Invalid input![/bold red")
+                    logging.error("Error: Invalid input!")
+                    input("Press Enter to continue...")
+                    clear_screen()
+
 
     # first menu
     def menu(self):
@@ -1103,6 +1164,16 @@ class TaskManager:
                 del tasks[task_id]
         self.save_tasks(tasks)
 
+
+    def print_create_task(self):
+        console = Console(width=100)
+        console.print("                       ┌─┐┬─┐┌─┐┌─┐┌┬┐┌─┐  ┌┬┐┌─┐┌─┐┬┌─", justify='left',
+                      style='blink bold yellow')
+        console.print("                       │  ├┬┘├┤ ├─┤ │ ├┤    │ ├─┤└─┐├┴┐", justify='left',
+                      style='blink bold yellow')
+        console.print("                       └─┘┴└─└─┘┴ ┴ ┴ └─┘   ┴ ┴ ┴└─┘┴ ┴", justify='left',
+                      style='blink bold yellow')
+
     def get_valid_datetime(self):
         console = Console(width=60)
         while True:
@@ -1125,16 +1196,26 @@ class TaskManager:
                     justify='center', style='red')
                 logger.info(
                     "Error: Invalid date format. Please enter the date and time in the format YYYY-MM-DD HH:MM.")
-
-    def print_create_task(self):
-        console = Console(width=100)
-        console.print("                       ┌─┐┬─┐┌─┐┌─┐┌┬┐┌─┐  ┌┬┐┌─┐┌─┐┬┌─", justify='left',
-                      style='blink bold yellow')
-        console.print("                       │  ├┬┘├┤ ├─┤ │ ├┤    │ ├─┤└─┐├┴┐", justify='left',
-                      style='blink bold yellow')
-        console.print("                       └─┘┴└─└─┘┴ ┴ ┴ └─┘   ┴ ┴ ┴└─┘┴ ┴", justify='left',
-                      style='blink bold yellow')
-
+       
+    def get_valid_start_datetime(self):
+        console = Console(width=60)
+        while True:
+            console.print("Enter the task start time (leave blank for now): ", justify='center', style='white underline')
+            datetime_input = input()
+            if not datetime_input:
+                return None
+            try:
+                datetime_obj = datetime.strptime(datetime_input, "%Y-%m-%d %H:%M")
+                if datetime_obj < datetime.now():
+                    console.print("\nError: Invalid date and time. It should be in the present or future.", justify='center',
+                                  style='red')
+                    continue
+                return datetime_obj
+            except ValueError:
+                console.print(
+                    "\nError: Invalid date format. Please enter the date and time in the format YYYY-MM-DD HH:MM.",
+                    justify='center', style='red')
+                
     def create_task(self, username, selected_project):
         console = Console(width=80)
         project_manager = ProjectManager()
@@ -1169,7 +1250,9 @@ class TaskManager:
         title = input()
         console.print("Enter the task description: ", justify='center', style='white underline')
         description = input()
-        start_datetime = datetime.now()
+        start_datetime = self.get_valid_start_datetime()
+        if not start_datetime:
+            start_datetime = datetime.now()
         end_datetime = self.get_valid_datetime()
         if not end_datetime:
             end_datetime = start_datetime + timedelta(days=1)
@@ -1285,6 +1368,7 @@ class TaskManager:
             "label": label,
             "title": title,
             "description": description,
+            "start_time": start_datetime.isoformat(),
             "deadline": end_datetime.isoformat(),
             "assignees": selected_members,
             "priority": selected_priority.value,
@@ -1330,19 +1414,22 @@ class TaskManager:
             console.print("4. Change Assignees", justify='center')
             console.print("  ", justify='center')
             time.sleep(0.7)
-            console.print("5. Change Deadline", justify='center')
+            console.print("5. Change StartTime", justify='center')
             console.print("  ", justify='center')
             time.sleep(0.7)
-            console.print("6. Change Priority", justify='center')
+            console.print("6. Change Deadline", justify='center')
             console.print("  ", justify='center')
             time.sleep(0.7)
-            console.print("7. Change Status", justify='center')
+            console.print("7. Change Priority", justify='center')
             console.print("  ", justify='center')
             time.sleep(0.7)
-            console.print("8. Comments", justify='center')
+            console.print("8. Change Status", justify='center')
             console.print("  ", justify='center')
             time.sleep(0.7)
-            console.print("9. Exit", justify='center')
+            console.print("9. Comments", justify='center')
+            console.print("  ", justify='center')
+            time.sleep(0.7)
+            console.print("10. Exit", justify='center')
             console.print("  ", justify='center')
             time.sleep(0.7)
             console.print("Choose an option: ", justify='center')
@@ -1573,10 +1660,38 @@ class TaskManager:
                     console.print("Press Enter to continue...", justify='center', style='bold white')
                     input()
                     return
-
             elif choice == '5':
                 clear_screen()
-                console.print("Change Deadline: ", justify='center', style='blink bold magenta')
+                console.print("Change StartTime: ", justify='center', style='blink bold magenta')
+                if username == selected_project["owner"] or username in selected_task["assignees"]:
+                    new_start_time = self.get_valid_start_datetime()
+                    if new_start_time is not None:
+                        selected_task["start_time"] = new_start_time.strftime("%Y-%m-%d %H:%M")
+                        self.save_history(selected_project["project_id"], "Deadline Changed", selected_task["title"],
+                                          selected_task["start_time"], username, datetime.now())
+                        console.print("StartTime changed successfully.", justify='center', style='bold green')
+                        logger.info(f"StartTime of {selected_task} changed to {new_start_time}.")
+                        console.print("Press Enter to continue...", justify='center', style='bold white')
+                        input()
+                        clear_screen()
+                    else:
+                        console.print("Error: StartTime remains unchanged.", justify='center', style='bold red')
+                        logger.info("Error: StartTime remains unchanged.")
+                        console.print("Press Enter to continue...", justify='center', style='bold white')
+                        input()
+                        clear_screen()
+                else:
+                    console.print("Error: You are not allowed to change this section.", justify='center',
+                                  style='bold red')
+                    logger.info("Error: You are not allowed to change this section.")
+                    console.print("Press Enter to continue...", justify='center', style='bold white')
+                    input()
+                    clear_screen()
+                    return
+                
+            elif choice == '6':
+                clear_screen()
+                console.print("Change Deadline: ", justify='center', style='blink bold blue')
                 if username == selected_project["owner"] or username in selected_task["assignees"]:
                     new_deadline = self.get_valid_datetime()
                     if new_deadline is not None:
@@ -1603,9 +1718,9 @@ class TaskManager:
                     clear_screen()
                     return
 
-            elif choice == '6':
+            elif choice == '7':
                 clear_screen()
-                console.print("Change Priority: ", justify='center', style='blink bold blue')
+                console.print("Change Priority: ", justify='center', style='blink bold magenta')
                 if username == selected_project["owner"] or username in selected_task["assignees"]:
                     console.print("\nSelect Priority:", justify='center', style='bold cyan')
                     console.print("  ", justify='center')
@@ -1657,9 +1772,9 @@ class TaskManager:
                 clear_screen()
 
 
-            elif choice == '7':
+            elif choice == '8':
                 clear_screen()
-                console.print("Change Priority: ", justify='center', style='blink bold magenta')
+                console.print("Change Priority: ", justify='center', style='blink bold blue')
                 if username == selected_project["owner"] or username in selected_task["assignees"]:
                     console.print("\nSelect Status:", justify='center', style='bold cyan')
                     console.print("  ", justify='center')
@@ -1699,8 +1814,9 @@ class TaskManager:
                         logger.info("Error: Invalid status choice.")
                         console.print("Press Enter to continue...", justify='center', style='bold white')
                         input()
-                        break
                         clear_screen()
+                        break
+                        
 
 
                 else:
@@ -1712,10 +1828,10 @@ class TaskManager:
                 input()
                 clear_screen()
 
-            elif choice == '8':
+            elif choice == '9':
                 clear_screen()
                 while True:
-                    console.print("Comment Menu:", justify='center', style='blink bold blue')
+                    console.print("Comment Menu:", justify='center', style='blink bold magenta')
                     console.print("\n1. Add Comment", justify='center', style='white')
                     console.print("  ", justify='center')
                     console.print("2. Remove Comment", justify='center', style='white')
@@ -1845,7 +1961,7 @@ class TaskManager:
                     elif comment_choice == '3':
                         break
 
-            elif choice == '9':
+            elif choice == '10':
                 clear_screen()
                 self.update_task(selected_task['task_id'], selected_task)
                 console.print("Task saved and exited.", justify='center', style='bold green')
@@ -2112,15 +2228,19 @@ class TaskManager:
                     table.add_row()
                     table.add_row("Assignees", ', '.join(selected_task['assignees']), style='cyan')
                     table.add_row()
+                    starttime_formatted = datetime.fromisoformat(selected_task.get('start_time')).strftime(
+                        "%Y-%m-%d %H:%M") if selected_task.get('start_time') else 'N/A'
+                    table.add_row("Start Time", starttime_formatted, style='white')
+                    table.add_row()
                     deadline_formatted = datetime.fromisoformat(selected_task.get('deadline')).strftime(
                         "%Y-%m-%d %H:%M") if selected_task.get('deadline') else 'N/A'
-                    table.add_row("Deadline", deadline_formatted, style='white')
+                    table.add_row("Deadline", deadline_formatted, style='cyan')
                     table.add_row()
-                    table.add_row("Priority", selected_task.get('priority', 'N/A'), style='cyan')
+                    table.add_row("Priority", selected_task.get('priority', 'N/A'), style='white')
                     table.add_row()
-                    table.add_row("Status", selected_task.get('status', 'N/A'), style='white')
+                    table.add_row("Status", selected_task.get('status', 'N/A'), style='cyan')
                     table.add_row()
-                    table.add_row("Comments", "[italic]See below[/italic]", style='cyan')
+                    table.add_row("Comments", "[italic]See below[/italic]", style='white')
                     table.add_row()
                     for comment in selected_task.get('comments', []):
                         table.add_row("", f"{comment['username']}: {comment['comment']}")
